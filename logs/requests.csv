@@ -1,0 +1,1 @@
+timestamp,user_id,query_text,retrieved_chunks,llm_response_time,total_response_time,is_cached,feedback_rating,topic

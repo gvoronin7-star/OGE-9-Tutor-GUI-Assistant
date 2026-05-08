@@ -1,0 +1,95 @@
+# Cursor Rules - OGE Tutor
+
+## Общие правила
+
+1. **Язык**: Русский (комментарии, документация, сообщения)
+2. **Стиль кода**: PEP 8, snake_case, PascalCase
+3. **Docstrings**: Формат Google
+
+## Структура проекта
+
+```
+project_root/
+├── .cursorrules           # Этот файл
+├── docker-compose.yml     # Оркестрация
+├── Dockerfile             # Образ
+├── requirements.txt       # Зависимости
+├── main.py               # FastAPI приложение
+├── bot/                  # Telegram бот
+│   ├── __init__.py
+│   ├── handlers.py       # Обработчики
+│   ├── keyboards.py      # Клавиатуры
+│   └── main.py
+├── api/                  # API и RAG
+│   ├── __init__.py
+│   ├── rag_pipeline.py  # RAG пайплайн
+│   ├── vector_store.py  # Faiss
+│   ├── text_search.py   # Whoosh
+│   ├── llm_client.py    # LLM клиент
+│   └── test_generator.py
+├── utils/                # Утилиты
+│   ├── __init__.py
+│   ├── logger.py
+│   └── cache.py
+├── data/                 # Данные
+│   ├── chunks/
+│   ├── metadata/
+│   ├── indices/
+│   └── tests/
+├── logs/                 # Логи
+└── docs/                 # Документация
+```
+
+## Ключевые компоненты
+
+### RAG-Pipeline
+
+- Поиск: Faiss (top-5) + Whoosh (top-3)
+- LLM: GigaChat-Max через ProxyAPI
+- Кэширование: Redis с динамическим TTL
+- Чанки: 250-350 слов, Markdown
+
+### Бот
+
+- aiogram 3.x
+- Состояния: FSM через Redis
+- Обработчики: асинхронные
+
+### API
+
+- FastAPI
+- Эндпоинты: /, /health, /metrics
+
+## Типичные задачи
+
+### Добавить тему
+
+1. Создать файл в `data/chunks/`
+2. Переиндексировать: `rag_pipeline._reindex()`
+
+### Добавить обработчик
+
+1. Создать функцию в `bot/handlers.py`
+2. Зарегистрировать в роутере
+3. Добавить кнопку в `bot/keyboards.py`
+
+### Добавить API эндпоинт
+
+1. Добавить в `main.py`
+2. Документировать в `docs/API_SPEC.md`
+
+## Тестирование
+
+```bash
+pytest tests/ --cov=. --cov-report=html
+```
+
+## Команды запуска
+
+```bash
+# Docker
+docker-compose up -d
+
+# Локально
+python main.py
+```
