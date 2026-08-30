@@ -6,7 +6,7 @@
 
 ### 1. Сообщить об ошибке
 
-Если вы нашли баг, создайте [issue](https://github.com/your-username/oge-tutor/issues) с меткой `bug`:
+Если вы нашли баг, создайте [issue](https://github.com/gvoronin7-star/oge-tutor/issues) с меткой `bug`:
 
 - Опишите проблему подробно
 - Укажите версию проекта
@@ -15,7 +15,7 @@
 
 ### 2. Предложить улучшение
 
-Для новых функций создайте [issue](https://github.com/your-username/oge-tutor/issues) с меткой `enhancement`:
+Для новых функций создайте [issue](https://github.com/gvoronin7-star/oge-tutor/issues) с меткой `enhancement`:
 
 - Опишите предлагаемую функцию
 - Объясните, какую проблему она решает
@@ -36,7 +36,7 @@
    ```bash
    git push origin feature/amazing-feature
    ```
-5. Откройте [Pull Request](https://github.com/your-username/oge-tutor/pulls)
+5. Откройте [Pull Request](https://github.com/gvoronin7-star/oge-tutor/pulls)
 
 ## Стиль кода
 
@@ -89,7 +89,7 @@ isort .
 
 ## Вопросы?
 
-Если у вас возникли вопросы, создайте [issue](https://github.com/your-username/oge-tutor/issues) с меткой `question`.
+Если у вас возникли вопросы, создайте [issue](https://github.com/gvoronin7-star/oge-tutor/issues) с меткой `question`.
 
 ---
 
