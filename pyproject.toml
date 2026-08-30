@@ -1,0 +1,7 @@
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+explicit_package_bases = true
+ignore_missing_imports = true

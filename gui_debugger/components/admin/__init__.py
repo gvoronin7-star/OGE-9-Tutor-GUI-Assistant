@@ -3,17 +3,17 @@
 
 # Существующие компоненты (из v1.0)
 from ..chat_panel import ChatPanel
-from ..rag_panel import RAGPanel
-from ..metrics_panel import MetricsPanel
 from ..database_panel import DatabasePanel
+from ..metrics_panel import MetricsPanel
+from ..rag_panel import RAGPanel
+from .cache_manager import CacheManager
+from .config_panel import ConfigPanel
+from .llm_monitor import LLMMonitor
 
 # Новые компоненты
 from .logs_viewer import LogsViewer
-from .cache_manager import CacheManager
-from .llm_monitor import LLMMonitor
-from .config_panel import ConfigPanel
-from .users_panel import UsersPanel
 from .rag_manager import RAGManager
+from .users_panel import UsersPanel
 
 __all__ = [
     # Существующие
@@ -27,5 +27,5 @@ __all__ = [
     "LLMMonitor",
     "ConfigPanel",
     "UsersPanel",
-    "RAGManager"
+    "RAGManager",
 ]

@@ -11,18 +11,18 @@ from typing import Any
 
 class AsyncHelper:
     """Помощник для запуска asyncio функций в GUI."""
-    
+
     def __init__(self) -> None:
         """Инициализация помощника."""
         pass
-    
+
     def run_async(self, coro: Any) -> Any:
         """
         Запуск асинхронной функции.
-        
+
         Args:
             coro: Асинхронная корутина
-            
+
         Returns:
             Результат выполнения
         """
@@ -39,27 +39,27 @@ class AsyncHelper:
                 finally:
                     loop.close()
             raise
-    
+
     def run_async_callback(self, func: Any, *args: Any, **kwargs: Any) -> None:
         """
         Запуск асинхронной функции с callback (fire and forget).
-        
+
         Args:
             func: Асинхронная функция для вызова
             args: Позиционные аргументы
             kwargs: Именованные аргументы
         """
         import threading
-        
+
         def run():
             try:
                 asyncio.run(func(*args, **kwargs))
             except Exception as e:
                 print(f"Async callback error: {e}")
-        
+
         thread = threading.Thread(target=run, daemon=True)
         thread.start()
-    
+
     def stop(self) -> None:
         """Остановка (nop для нового подхода)."""
         pass

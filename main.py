@@ -19,9 +19,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from api.rag_pipeline import RAGPipeline
 from utils.cache import CacheManager
 from utils.logger import setup_logging
-from api.rag_pipeline import RAGPipeline
 
 # Загрузка переменных окружения из .env
 env_path = Path(".env")
@@ -39,17 +39,17 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Контекстный менеджер для управления жизненным циклом приложения.
-    
+
     Выполняет инициализацию при старте и очистку при завершении работы.
-    
+
     Args:
         app: Экземпляр FastAPI-приложения
-        
+
     Yields:
         None
     """
     logger.info("Запуск приложения OGE Tutor...")
-    
+
     try:
         # Инициализация кэш-менеджера (с поддержкой fakeredis)
         cache_manager = CacheManager()
@@ -60,35 +60,36 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception as cache_err:
             logger.warning(f"Redis недоступен, используем in-memory кэш: {cache_err}")
             from utils.cache import InMemoryCache
+
             app.state.cache_manager = InMemoryCache()
             logger.info("Используется in-memory кэш")
-        
+
         # Инициализация RAG-пайплайна
         rag_pipeline = RAGPipeline(cache_manager)
         await rag_pipeline.initialize()
         app.state.rag_pipeline = rag_pipeline
-        
+
         # Вывод статуса RAG_data_base
         if rag_pipeline.use_existing:
             logger.info("✓ RAG_data_base активна (204 чанка ФИПИ)")
         else:
             logger.info("⚠ RAG_data_base не активна, используется локальный индекс")
-        
+
         logger.info("RAG-пайплайн инициализирован")
-        
+
         logger.info("Приложение успешно инициализировано")
-        
+
     except Exception as e:
         logger.error(f"Ошибка при инициализации: {e}", exc_info=True)
         raise
-    
+
     yield
-    
+
     # Очистка при завершении
     logger.info("Завершение работы приложения...")
-    if hasattr(app.state, 'cache_manager'):
+    if hasattr(app.state, "cache_manager"):
         await app.state.cache_manager.close()
-    if hasattr(app.state, 'rag_pipeline'):
+    if hasattr(app.state, "rag_pipeline"):
         await app.state.rag_pipeline.close()
     logger.info("Приложение завершено")
 
@@ -98,7 +99,7 @@ app = FastAPI(
     title="OGE Tutor API",
     description="API для RAG-ассистента подготовки к ОГЭ по обществознанию",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 
@@ -106,40 +107,41 @@ app = FastAPI(
 async def root() -> JSONResponse:
     """
     Корневой эндпоинт для проверки работоспособности.
-    
+
     Returns:
         JSONResponse: Статус приложения
     """
-    return JSONResponse({
-        "status": "online",
-        "service": "OGE Tutor",
-        "version": "1.0.0"
-    })
+    return JSONResponse(
+        {"status": "online", "service": "OGE Tutor", "version": "1.0.0"}
+    )
 
 
 @app.get("/health")
 async def health_check() -> JSONResponse:
     """
     Эндпоинт для проверки здоровья всех компонентов.
-    
+
     Returns:
         JSONResponse: Статус всех компонентов системы
     """
     try:
         cache_status = "ok"
-        if hasattr(app.state, 'cache_manager'):
+        if hasattr(app.state, "cache_manager"):
             await app.state.cache_manager.ping()
-        
-        return JSONResponse({
-            "status": "healthy",
-            "cache": cache_status,
-            "rag_pipeline": "ok" if hasattr(app.state, 'rag_pipeline') else "not_initialized"
-        })
+
+        return JSONResponse(
+            {
+                "status": "healthy",
+                "cache": cache_status,
+                "rag_pipeline": (
+                    "ok" if hasattr(app.state, "rag_pipeline") else "not_initialized"
+                ),
+            }
+        )
     except Exception as e:
         logger.error(f"Ошибка health check: {e}")
         return JSONResponse(
-            status_code=503,
-            content={"status": "unhealthy", "error": str(e)}
+            status_code=503, content={"status": "unhealthy", "error": str(e)}
         )
 
 
@@ -147,25 +149,22 @@ async def health_check() -> JSONResponse:
 async def metrics() -> JSONResponse:
     """
     Эндпоинт для получения метрик системы.
-    
+
     Returns:
         JSONResponse: Метрики использования
     """
     try:
         cache_manager = app.state.cache_manager
         metrics_data = await cache_manager.get_metrics()
-        
-        if hasattr(app.state, 'rag_pipeline'):
+
+        if hasattr(app.state, "rag_pipeline"):
             rag_metrics = app.state.rag_pipeline.get_metrics()
             metrics_data.update(rag_metrics)
-        
+
         return JSONResponse(metrics_data)
     except Exception as e:
         logger.error(f"Ошибка получения метрик: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)}
-        )
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 # Обработчик ошибок
@@ -173,21 +172,22 @@ async def metrics() -> JSONResponse:
 async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
     Глобальный обработчик исключений.
-    
+
     Args:
         request: Объект запроса
         exc: Перехваченное исключение
-        
+
     Returns:
         JSONResponse: Ответ с информацией об ошибке
     """
     logger.error(f"Необработанная ошибка: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"error": "Внутренняя ошибка сервера", "detail": str(exc)}
+        content={"error": "Внутренняя ошибка сервера", "detail": str(exc)},
     )
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

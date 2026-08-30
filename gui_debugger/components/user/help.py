@@ -6,66 +6,53 @@
 """
 
 import tkinter as tk
-from tkinter import ttk, scrolledtext
-from typing import Optional, Callable
+from tkinter import scrolledtext, ttk
+from typing import Callable, Optional
 
 
 class HelpPanel(ttk.Frame):
     """Панель помощи."""
-    
-    def __init__(
-        self,
-        parent: tk.Widget,
-        on_back: Optional[Callable] = None
-    ) -> None:
+
+    def __init__(self, parent: tk.Widget, on_back: Optional[Callable] = None) -> None:
         """
         Инициализация панели помощи.
-        
+
         Args:
             parent: Родительский виджет
             on_back: Callback для кнопки "Назад"
         """
         super().__init__(parent)
         self.on_back = on_back
-        
+
         self._create_widgets()
-    
+
     def _create_widgets(self) -> None:
         """Создание виджетов."""
         # Заголовок
         header = ttk.Frame(self)
         header.pack(fill=tk.X, pady=10)
-        
-        back_btn = ttk.Button(
-            header,
-            text="🔙 Назад",
-            command=self.on_back,
-            width=15
-        )
+
+        back_btn = ttk.Button(header, text="🔙 Назад", command=self.on_back, width=15)
         back_btn.pack(side=tk.LEFT, padx=10)
-        
+
         title = ttk.Label(
             header,
             text="❓ ПОМОЩЬ",
             font=("Segoe UI", 14, "bold"),
-            foreground="#0078d4"
+            foreground="#0078d4",
         )
         title.pack()
-        
+
         # Вкладки помощи
         notebook = ttk.Notebook(self)
         notebook.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
-        
+
         # Вкладка 1: Команды
         commands_tab = scrolledtext.ScrolledText(
-            notebook,
-            wrap=tk.WORD,
-            font=("Segoe UI", 10),
-            bg="#1e1e1e",
-            fg="#ffffff"
+            notebook, wrap=tk.WORD, font=("Segoe UI", 10), bg="#1e1e1e", fg="#ffffff"
         )
         notebook.add(commands_tab, text="  Команды  ")
-        
+
         commands_text = """
 КОМАНДЫ БОТА
 ═══════════════════════════════════════════
@@ -92,17 +79,13 @@ class HelpPanel(ttk.Frame):
 """
         commands_tab.insert(tk.END, commands_text)
         commands_tab.configure(state=tk.DISABLED)
-        
+
         # Вкладка 2: Как задавать вопросы
         questions_tab = scrolledtext.ScrolledText(
-            notebook,
-            wrap=tk.WORD,
-            font=("Segoe UI", 10),
-            bg="#1e1e1e",
-            fg="#ffffff"
+            notebook, wrap=tk.WORD, font=("Segoe UI", 10), bg="#1e1e1e", fg="#ffffff"
         )
         notebook.add(questions_tab, text="  Вопросы  ")
-        
+
         questions_text = """
 КАК ЗАДАВАТЬ ВОПРОСЫ
 ═══════════════════════════════════════════
@@ -150,17 +133,13 @@ class HelpPanel(ttk.Frame):
 """
         questions_tab.insert(tk.END, questions_text)
         questions_tab.configure(state=tk.DISABLED)
-        
+
         # Вкладка 3: Советы по подготовке
         tips_tab = scrolledtext.ScrolledText(
-            notebook,
-            wrap=tk.WORD,
-            font=("Segoe UI", 10),
-            bg="#1e1e1e",
-            fg="#ffffff"
+            notebook, wrap=tk.WORD, font=("Segoe UI", 10), bg="#1e1e1e", fg="#ffffff"
         )
         notebook.add(tips_tab, text="  Советы  ")
-        
+
         tips_text = """
 СОВЕТЫ ПО ПОДГОТОВКЕ К ОГЭ
 ═══════════════════════════════════════════
@@ -224,17 +203,13 @@ class HelpPanel(ttk.Frame):
 """
         tips_tab.insert(tk.END, tips_text)
         tips_tab.configure(state=tk.DISABLED)
-        
+
         # Вкладка 4: О системе
         about_tab = scrolledtext.ScrolledText(
-            notebook,
-            wrap=tk.WORD,
-            font=("Segoe UI", 10),
-            bg="#1e1e1e",
-            fg="#ffffff"
+            notebook, wrap=tk.WORD, font=("Segoe UI", 10), bg="#1e1e1e", fg="#ffffff"
         )
         notebook.add(about_tab, text="  О системе  ")
-        
+
         about_text = """
 О СИСТЕМЕ OGE TUTOR
 ═══════════════════════════════════════════
