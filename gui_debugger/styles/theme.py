@@ -5,8 +5,9 @@
 Использует ttkbootstrap для современных тем.
 """
 
-import tkinter as tk
 from typing import Dict, Any
+
+import ttkbootstrap as tb
 
 
 class Theme:
@@ -57,26 +58,18 @@ class Theme:
     def __init__(self, mode: str = "dark") -> None:
         """
         Инициализация темы.
-        
+
         Args:
             mode: "dark" или "light"
         """
         self.mode = mode
         self.colors = self.COLORS[mode]
-    
-    def configure_window(self, window: tk.Tk) -> None:
-        """
-        Настройка окна с темой.
-        
-        Args:
-            window: Окно Tkinter
-        """
-        window.configure(bg=self.colors["bg"])
-    
+        self.style: tb.Style | None = None
+
     def get_style_config(self) -> Dict[str, Any]:
         """
         Конфигурация для ttkbootstrap.
-        
+
         Returns:
             Словарь конфигурации
         """
@@ -84,47 +77,62 @@ class Theme:
             "theme": "darkly" if self.mode == "dark" else "cosmo",
             "font": self.FONTS["normal"]
         }
-    
-    def apply_custom_styles(self, style: Any) -> None:
+
+    def apply_custom_styles(self, style: tb.Style) -> None:
         """
-        Применение кастомных стилей.
-        
+        Применение кастомных стилей поверх темы ttkbootstrap.
+
         Args:
-            style: Объект стиля ttk
+            style: Объект Style ttkbootstrap (совместим с ttk.Style)
         """
-        # Стили для кнопок ответов
-        style.configure(
-            "success.TButton",
-            background=self.colors["success"],
-            foreground="#ffffff"
-        )
-        
-        style.configure(
-            "danger.TButton",
-            background=self.colors["error"],
-            foreground="#ffffff"
-        )
-        
-        # Бледные версии для подсветки
+        self.style = style
+
+        # Бледные версии success/danger для подсветки вариантов ответа
+        # (сами "success.TButton"/"danger.TButton" уже определены ttkbootstrap)
         style.configure(
             "PaleSuccess.TButton",
             background="#2d5a2d",
             foreground="#ffffff"
         )
-        
+
         style.configure(
             "PaleDanger.TButton",
             background="#5a2d2d",
             foreground="#ffffff"
         )
-    
+
+        # Стили, используемые в коде, но не входящие в стандартный набор
+        # ttkbootstrap — строим их поверх акцентного цвета темы (primary),
+        # чтобы при переключении тёмная/светлая цвет брался из текущей темы
+        style.configure(
+            "Accent.TButton",
+            font=self.FONTS["normal"],
+            background=style.colors.primary,
+            foreground=style.colors.get_foreground("primary")
+        )
+        style.map(
+            "Accent.TButton",
+            background=[("active", style.colors.active)]
+        )
+        style.configure(
+            "Card.TFrame",
+            background=style.colors.bg,
+            relief="raised",
+            borderwidth=1
+        )
+
     def toggle_mode(self) -> str:
         """
-        Переключение режима темы.
-        
+        Переключение режима темы (тёмная/светлая) во время работы приложения.
+
+        Требует, чтобы apply_custom_styles() уже был вызван — иначе
+        меняется только self.mode/self.colors без визуального эффекта.
+
         Returns:
             Новый режим
         """
         self.mode = "light" if self.mode == "dark" else "dark"
         self.colors = self.COLORS[self.mode]
+        if self.style is not None:
+            self.style.theme_use(self.get_style_config()["theme"])
         return self.mode

@@ -12,6 +12,8 @@ from tkinter import ttk
 import sys
 from pathlib import Path
 
+import ttkbootstrap as tb
+
 # Добавляем путь к проекту (родительская директория)
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -52,17 +54,14 @@ class OGEDebuggerApp:
     
     def _create_window(self) -> None:
         """Создание главного окна."""
-        self.root = tk.Tk()
+        self.root = tb.Window(themename=self.theme.get_style_config()["theme"])
         self.root.title("OGE TUTOR — GUI v2.0")
         self.root.geometry("1400x900")
-        
-        # Настройка темы
-        self.theme.configure_window(self.root)
-        
+
         # Конфигурация сетки
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-    
+
         # Статус бар
         self.status_bar = ttk.Label(
             self.root,
@@ -71,10 +70,9 @@ class OGEDebuggerApp:
             anchor=tk.W
         )
         self.status_bar.grid(row=1, column=0, sticky="ew", padx=5, pady=2)
-    
-        # Применение кастомных стилей
-        style = ttk.Style()
-        self.theme.apply_custom_styles(style)
+
+        # Применение кастомных стилей поверх темы ttkbootstrap
+        self.theme.apply_custom_styles(self.root.style)
     
     def _show_mode_selector(self) -> None:
         """Показ экрана выбора режима."""
