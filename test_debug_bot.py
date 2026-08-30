@@ -144,9 +144,9 @@ async def main():
         success = await test_bot_no_redis()
         
         if success:
-    print("\n" + "=" * 60)
-    print("=== ПРОЕКТ OGE TUTOR ГОТОВ К РАБОТЕ! ===")
-    print("=" * 60)
+            print("\n" + "=" * 60)
+            print("=== ПРОЕКТ OGE TUTOR ГОТОВ К РАБОТЕ! ===")
+            print("=" * 60)
             return 0
         else:
             print("\n❌ ТЕСТЫ НЕ ПРОЙДЕНЫ")
