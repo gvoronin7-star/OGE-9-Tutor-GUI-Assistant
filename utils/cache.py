@@ -13,7 +13,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 import redis.asyncio as redis
 
@@ -143,7 +143,7 @@ class CacheManager:
         Returns:
             Optional[Dict[str, Any]]: Значение или None
         """
-        if not self._initialized:
+        if not self._initialized or not self.redis_client:
             return None
 
         try:
@@ -177,7 +177,7 @@ class CacheManager:
         Returns:
             bool: True если успешно
         """
-        if not self._initialized:
+        if not self._initialized or not self.redis_client:
             return False
 
         try:
@@ -209,7 +209,7 @@ class CacheManager:
         Returns:
             bool: True если успешно
         """
-        if not self._initialized:
+        if not self._initialized or not self.redis_client:
             return False
 
         try:
@@ -238,7 +238,7 @@ class CacheManager:
         Returns:
             Dict[str, Any]: Метрики
         """
-        if not self._initialized:
+        if not self._initialized or not self.redis_client:
             return {"cache_available": False}
 
         try:
@@ -266,7 +266,7 @@ class CacheManager:
         Returns:
             bool: True если успешно
         """
-        if not self._initialized:
+        if not self._initialized or not self.redis_client:
             return False
 
         try:
@@ -287,12 +287,12 @@ class CacheManager:
         Returns:
             List[str]: Список ключей
         """
-        if not self._initialized:
+        if not self._initialized or not self.redis_client:
             return []
 
         try:
             keys = await self.redis_client.keys(pattern)
-            return keys
+            return cast(List[str], keys)
         except Exception as e:
             logger.error(f"Ошибка получения ключей: {e}")
             return []

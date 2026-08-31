@@ -59,9 +59,9 @@ class TestSolver(ttk.Frame):
         self.score = 0
 
         # Таймер
-        self.start_time = 0
+        self.start_time: float = 0
         self.timer_running = False
-        self.elapsed_time = 0
+        self.elapsed_time: float = 0
         self.timer_job: Optional[str] = None
 
         # Предзагруженные тесты
@@ -773,6 +773,8 @@ class TestSolver(ttk.Frame):
         Args:
             answer_index: Индекс выбранного ответа
         """
+        assert self.current_question_data is not None, "Вопрос не загружен"
+
         # Блокировка кнопок
         for btn in self.answer_buttons:
             btn.configure(state=tk.DISABLED)
@@ -820,6 +822,8 @@ class TestSolver(ttk.Frame):
 
     def _next_question(self) -> None:
         """Переход к следующему вопросу."""
+        assert self.current_test is not None, "Тест не загружен"
+
         # Переход к следующему
         self.current_question_index += 1
 
@@ -835,6 +839,8 @@ class TestSolver(ttk.Frame):
 
     def _finish_test(self) -> None:
         """Завершение теста."""
+        assert self.current_test is not None, "Тест не загружен"
+
         # Остановка таймера
         self._stop_timer()
 

@@ -155,6 +155,12 @@ class VectorStore:
             if not self.model or not self.index:
                 await self.initialize()
 
+            if not self.model or not self.index:
+                logger.warning(
+                    "Индексация недоступна: модель/индекс не инициализированы"
+                )
+                return
+
             logger.info(f"Индексация {len(chunks)} чанков...")
 
             # Очистка старого индекса

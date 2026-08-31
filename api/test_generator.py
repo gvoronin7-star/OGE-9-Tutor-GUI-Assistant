@@ -43,7 +43,7 @@ class TestGenerator:
         self.tests_dir.mkdir(parents=True, exist_ok=True)
 
         # Сопоставление сложности и типов вопросов
-        self.difficulty_params = {
+        self.difficulty_params: Dict[str, Dict[str, Any]] = {
             "easy": {
                 "question_types": ["fact", "definition"],
                 "num_options": 4,
@@ -93,7 +93,7 @@ class TestGenerator:
 
         # Генерация вопросов через LLM или демо-режим
         try:
-            questions = await self.rag_pipeline.llm_client.generate_questions(
+            questions = await self.rag_pipeline.llm_client.generate_questions(  # type: ignore[union-attr]
                 topic=topic,
                 difficulty=difficulty,
                 num_questions=num_questions,
@@ -435,7 +435,7 @@ class TestGenerator:
                 chunks = await self.rag_pipeline._search_chunks(topic)
                 if chunks:
                     context = self.rag_pipeline._build_context(chunks)
-                    questions = await self.rag_pipeline.llm_client.generate_questions(
+                    questions = await self.rag_pipeline.llm_client.generate_questions(  # type: ignore[union-attr]
                         topic=topic,
                         difficulty="mixed",
                         num_questions=2,  # 2 вопроса от каждой темы

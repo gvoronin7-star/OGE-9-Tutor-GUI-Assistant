@@ -172,7 +172,7 @@ class QueryStatsLogger:
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         self.stats_file = self.log_dir / "query_stats.json"
-        self.query_stats: Dict[str, int] = {}
+        self.query_stats: Dict[int, int] = {}
         self._load_stats()
 
     def _load_stats(self) -> None:
@@ -180,7 +180,10 @@ class QueryStatsLogger:
         if self.stats_file.exists():
             try:
                 with open(self.stats_file, "r", encoding="utf-8") as f:
-                    self.query_stats = json.load(f)
+                    # JSON хранит ключи объекта только строками — hash() даёт int,
+                    # без конвертации обратно совпадений по query_hash не будет
+                    # ни для одного ранее сохранённого запроса после перезапуска.
+                    self.query_stats = {int(k): v for k, v in json.load(f).items()}
             except Exception:
                 self.query_stats = {}
 

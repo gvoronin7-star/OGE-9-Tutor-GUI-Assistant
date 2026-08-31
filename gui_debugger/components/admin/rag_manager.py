@@ -321,7 +321,7 @@ class RAGManager(ttk.Frame):
             "Старая база будет УДАЛЕНА без возможности восстановления.\n\n"
             "Рекомендуется создать резервную копию!\n\n"
             "Продолжить?",
-            icon=tk.WARNING,
+            icon=messagebox.WARNING,
         )
 
         if not confirm:
@@ -350,7 +350,7 @@ class RAGManager(ttk.Frame):
             backup_base = Path("RAG_data_base_backup")
 
             # Шаг 1: Создать резервную копию текущей базы
-            self._update_status("Создание резервной копии...")
+            self._set_operation_status("Создание резервной копии...")
 
             if current_base.exists():
                 if backup_base.exists():
@@ -358,19 +358,20 @@ class RAGManager(ttk.Frame):
                 shutil.copytree(current_base, backup_base)
 
             # Шаг 2: Удалить текущую базу
-            self._update_status("Удаление старой базы...")
+            self._set_operation_status("Удаление старой базы...")
 
             if current_base.exists():
                 shutil.rmtree(current_base)
 
             # Шаг 3: Скопировать новую базу
-            self._update_status("Копирование новой базы...")
+            self._set_operation_status("Копирование новой базы...")
 
+            assert self.new_base_path is not None, "Новая база не выбрана"
             if self.new_base_path.exists():
                 shutil.copytree(self.new_base_path, current_base)
 
             # Шаг 4: Переиндексировать
-            self._update_status("Переиндексация базы...")
+            self._set_operation_status("Переиндексация базы...")
 
             import asyncio
 
@@ -390,7 +391,7 @@ class RAGManager(ttk.Frame):
         except Exception as e:
             self._upload_error(str(e))
 
-    def _update_status(self, message: str) -> None:
+    def _set_operation_status(self, message: str) -> None:
         """Обновление статуса операции."""
         self.operation_status_label.configure(text=message, foreground="#0078d4")
         self.update()

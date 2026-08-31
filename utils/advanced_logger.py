@@ -118,6 +118,7 @@ class LogManager:
 
     _instance: Optional["LogManager"] = None
     _lock = threading.Lock()
+    _initialized: bool
 
     def __new__(cls) -> "LogManager":
         """Singleton паттерн."""
@@ -403,7 +404,7 @@ class DetailedRequestLogger:
         Returns:
             List[Dict[str, Any]]: Список запросов
         """
-        requests = []
+        requests: List[Dict[str, Any]] = []
 
         try:
             with open(self.requests_file, "r", encoding="utf-8") as f:
@@ -425,7 +426,7 @@ class DetailedRequestLogger:
 
     def get_stats(self) -> Dict[str, Any]:
         """Получение статистики по запросам."""
-        stats = {
+        stats: Dict[str, Any] = {
             "total": 0,
             "success": 0,
             "error": 0,

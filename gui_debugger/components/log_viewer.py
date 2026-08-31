@@ -12,13 +12,13 @@ import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class LogViewer(ttk.Frame):
     """Просмотрщик логов."""
 
-    def __init__(self, parent: tk.Widget, log_dir: Path) -> None:
+    def __init__(self, parent: tk.Misc, log_dir: Path) -> None:
         """Инициализация."""
         super().__init__(parent)
         self.log_dir = log_dir
@@ -216,7 +216,7 @@ class LogViewer(ttk.Frame):
                         )
 
                         # Цвет для ошибок
-                        tags = ()
+                        tags: Tuple[str, ...] = ()
                         if row.get("status") == "error":
                             tags = ("error",)
 
@@ -335,7 +335,7 @@ class LogViewer(ttk.Frame):
         refresh()
 
 
-def create_log_viewer(root: tk.Tk) -> None:
+def create_log_viewer(root: tk.Misc) -> None:
     """Создание окна просмотрщика логов."""
     from utils.advanced_logger import log_manager
 
