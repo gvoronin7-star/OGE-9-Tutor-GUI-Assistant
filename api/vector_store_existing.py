@@ -42,7 +42,7 @@ class ExistingVectorStore:
         """
         self.base_dir = Path(base_dir)
         self.dataset: List[Dict[str, Any]] = []
-        self.index = None
+        self.index: Optional[Any] = None
         self.metadata: Dict[str, Any] = {}
         self.embedding_dim = 1536  # text-embedding-3-small
 

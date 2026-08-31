@@ -8,7 +8,7 @@
 import asyncio
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 
 class CacheManager(ttk.Frame):
@@ -139,10 +139,12 @@ class CacheManager(ttk.Frame):
         """Обновление статистики."""
         if not self.cache_manager:
             # Демо-данные
-            self.keys_card.winfo_children()[1].configure(text="150")
-            self.memory_card.winfo_children()[1].configure(text="2.5 MB")
-            self.hits_card.winfo_children()[1].configure(text="45%")
-            self.clients_card.winfo_children()[1].configure(text="3")
+            cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(text="150")
+            cast(ttk.Label, self.memory_card.winfo_children()[1]).configure(
+                text="2.5 MB"
+            )
+            cast(ttk.Label, self.hits_card.winfo_children()[1]).configure(text="45%")
+            cast(ttk.Label, self.clients_card.winfo_children()[1]).configure(text="3")
 
             # Демо-ключи
             self.keys_listbox.delete(0, tk.END)
@@ -162,16 +164,16 @@ class CacheManager(ttk.Frame):
         try:
             stats = asyncio.run(self.cache_manager.get_stats())
 
-            self.keys_card.winfo_children()[1].configure(
+            cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(
                 text=str(stats.get("keys_count", 0))
             )
-            self.memory_card.winfo_children()[1].configure(
+            cast(ttk.Label, self.memory_card.winfo_children()[1]).configure(
                 text=f"{stats.get('used_memory', '0')} MB"
             )
-            self.hits_card.winfo_children()[1].configure(
+            cast(ttk.Label, self.hits_card.winfo_children()[1]).configure(
                 text=f"{stats.get('hit_rate', 0):.1f}%"
             )
-            self.clients_card.winfo_children()[1].configure(
+            cast(ttk.Label, self.clients_card.winfo_children()[1]).configure(
                 text=str(stats.get("connected_clients", 0))
             )
 
@@ -183,7 +185,9 @@ class CacheManager(ttk.Frame):
                 self.keys_listbox.insert(tk.END, key)
 
         except Exception as e:
-            self.keys_card.winfo_children()[1].configure(text=f"Ошибка: {str(e)}")
+            cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(
+                text=f"Ошибка: {str(e)}"
+            )
 
     def _on_key_select(self, event: tk.Event) -> None:
         """Выбор ключа."""

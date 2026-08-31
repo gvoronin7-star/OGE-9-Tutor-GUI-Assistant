@@ -7,7 +7,7 @@
 
 import tkinter as tk
 from tkinter import scrolledtext, ttk
-from typing import Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 
 class HelpPanel(ttk.Frame):
@@ -32,7 +32,12 @@ class HelpPanel(ttk.Frame):
         header = ttk.Frame(self)
         header.pack(fill=tk.X, pady=10)
 
-        back_btn = ttk.Button(header, text="🔙 Назад", command=self.on_back, width=15)
+        back_btn = ttk.Button(
+            header,
+            text="🔙 Назад",
+            command=cast(Callable[[], Any], self.on_back),
+            width=15,
+        )
         back_btn.pack(side=tk.LEFT, padx=10)
 
         title = ttk.Label(

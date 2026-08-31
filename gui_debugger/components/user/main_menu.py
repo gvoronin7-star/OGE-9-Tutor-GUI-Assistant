@@ -11,7 +11,7 @@
 
 import tkinter as tk
 from tkinter import ttk
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, cast
 
 
 class MainMenu(ttk.Frame):
@@ -121,7 +121,12 @@ class MainMenu(ttk.Frame):
             command: Callback
             row: Строка в сетке
         """
-        button = ttk.Button(parent, text=title, command=command, style="Accent.TButton")
+        button = ttk.Button(
+            parent,
+            text=title,
+            command=cast(Callable[[], Any], command),
+            style="Accent.TButton",
+        )
         button.grid(row=row, column=0, sticky="ew", pady=5, padx=5)
 
         desc_label = ttk.Label(

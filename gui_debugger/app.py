@@ -11,6 +11,7 @@ import sys
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+from typing import Union
 
 import ttkbootstrap as tb
 
@@ -28,6 +29,8 @@ from gui_debugger.styles.theme import Theme
 
 class OGEDebuggerApp:
     """Главное приложение отладчика v2.0."""
+
+    current_mode: Union[UserMode, AdminMode]
 
     def __init__(
         self,

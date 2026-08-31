@@ -8,7 +8,7 @@
 import tkinter as tk
 from datetime import datetime
 from tkinter import messagebox, ttk
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 
 class ProgressPanel(ttk.Frame):
@@ -59,7 +59,12 @@ class ProgressPanel(ttk.Frame):
         header = ttk.Frame(self)
         header.pack(fill=tk.X, pady=10)
 
-        back_btn = ttk.Button(header, text="🔙 Назад", command=self.on_back, width=15)
+        back_btn = ttk.Button(
+            header,
+            text="🔙 Назад",
+            command=cast(Callable[[], Any], self.on_back),
+            width=15,
+        )
         back_btn.pack(side=tk.LEFT, padx=10)
 
         title = ttk.Label(
@@ -75,32 +80,32 @@ class ProgressPanel(ttk.Frame):
         self.stats_frame.pack(fill=tk.X, padx=20, pady=10)
 
         # Карточки статистики - сохраняем ссылки на value_label
-        self.topics_card_value = None
-        self.tests_card_value = None
-        self.accuracy_card_value = None
-        self.grade_card_value = None
+        self.topics_card_value: Optional[ttk.Label] = None
+        self.tests_card_value: Optional[ttk.Label] = None
+        self.accuracy_card_value: Optional[ttk.Label] = None
+        self.grade_card_value: Optional[ttk.Label] = None
 
         # Карточка 1: Темы
         topics_card = self._create_stat_card(
             self.stats_frame, "📚 Тем изучено", "0 / 6"
         )
         topics_card.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        self.topics_card_value = topics_card.winfo_children()[1]
+        self.topics_card_value = cast(ttk.Label, topics_card.winfo_children()[1])
 
         # Карточка 2: Тесты
         tests_card = self._create_stat_card(self.stats_frame, "✍️ Тестов пройдено", "0")
         tests_card.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
-        self.tests_card_value = tests_card.winfo_children()[1]
+        self.tests_card_value = cast(ttk.Label, tests_card.winfo_children()[1])
 
         # Карточка 3: Точность
         accuracy_card = self._create_stat_card(self.stats_frame, "✅ Точность", "0%")
         accuracy_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
-        self.accuracy_card_value = accuracy_card.winfo_children()[1]
+        self.accuracy_card_value = cast(ttk.Label, accuracy_card.winfo_children()[1])
 
         # Карточка 4: Оценка
         grade_card = self._create_stat_card(self.stats_frame, "🏆 Оценка", "—")
         grade_card.grid(row=0, column=3, padx=5, pady=5, sticky="nsew")
-        self.grade_card_value = grade_card.winfo_children()[1]
+        self.grade_card_value = cast(ttk.Label, grade_card.winfo_children()[1])
 
         self.stats_frame.columnconfigure(0, weight=1)
         self.stats_frame.columnconfigure(1, weight=1)
@@ -113,7 +118,7 @@ class ProgressPanel(ttk.Frame):
         )
         topics_progress_frame.pack(fill=tk.X, padx=20, pady=10)
 
-        self.topics_list = []
+        self.topics_list: List[Dict[str, Any]] = []
         topics = [
             "Человек и общество",
             "Сфера духовной культуры",

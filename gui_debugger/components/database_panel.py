@@ -6,7 +6,7 @@
 import tkinter as tk
 from pathlib import Path
 from tkinter import scrolledtext, ttk
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 
 class DatabasePanel(ttk.Frame):
@@ -23,7 +23,7 @@ class DatabasePanel(ttk.Frame):
         super().__init__(parent)
         self.rag_pipeline = rag_pipeline
         self.current_chunk_index = 0
-        self.chunks = []
+        self.chunks: List[Dict[str, Any]] = []
 
         self._create_widgets()
         self._load_database_info()
@@ -164,7 +164,7 @@ class DatabasePanel(ttk.Frame):
         except Exception as e:
             self.stats_text.insert(tk.END, f"Ошибка загрузки: {str(e)}\n")
 
-    def _on_chunk_select(self, event: tk.Event) -> None:
+    def _on_chunk_select(self, event: Optional[tk.Event] = None) -> None:
         """Выбор чанка из списка."""
         selection = self.chunks_listbox.curselection()
 

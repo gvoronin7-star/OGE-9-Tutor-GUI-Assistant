@@ -26,7 +26,7 @@ class LogsViewer(ttk.Frame):
         super().__init__(parent)
 
         self.logs_file = Path("logs/requests.csv")
-        self.logs_data = []
+        self.logs_data: List[Dict[str, Any]] = []
 
         self._create_widgets()
         self._load_logs()

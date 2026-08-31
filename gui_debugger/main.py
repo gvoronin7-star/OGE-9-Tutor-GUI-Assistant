@@ -14,6 +14,7 @@ import os
 import sys
 import threading
 from pathlib import Path
+from typing import Optional
 
 # Корневая папка проекта
 project_root = Path(__file__).parent.parent.absolute()
@@ -28,8 +29,8 @@ if env_path.exists():
 
 
 # Глобальный event loop для использования в GUI
-_gui_loop: asyncio.AbstractEventLoop = None
-_gui_loop_thread: threading.Thread = None
+_gui_loop: Optional[asyncio.AbstractEventLoop] = None
+_gui_loop_thread: Optional[threading.Thread] = None
 
 
 def _run_loop_forever(loop: asyncio.AbstractEventLoop) -> None:

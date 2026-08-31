@@ -10,11 +10,12 @@
 - Индикация количества доступных тестов
 """
 
+import functools
 import threading
 import time
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from gui_debugger.utils.gui_logger import gui_action_logger, log_action, log_error
 
@@ -52,16 +53,16 @@ class TestSolver(ttk.Frame):
         self.on_back = on_back
         self.on_test_complete = on_test_complete
 
-        self.current_test = None
+        self.current_test: Optional[Dict[str, Any]] = None
         self.current_question_index = 0
-        self.user_answers = []
+        self.user_answers: List[int] = []
         self.score = 0
 
         # Таймер
         self.start_time = 0
         self.timer_running = False
         self.elapsed_time = 0
-        self.timer_job = None
+        self.timer_job: Optional[str] = None
 
         # Предзагруженные тесты
         self.preloaded_tests: Dict[str, Dict] = {}
@@ -70,7 +71,7 @@ class TestSolver(ttk.Frame):
         # Текущий тест и вопрос
         self.current_test = None
         self.current_question_index = 0
-        self.current_question_data = None
+        self.current_question_data: Optional[Dict[str, Any]] = None
         self.user_answers = []
         self.score = 0
 
@@ -83,7 +84,12 @@ class TestSolver(ttk.Frame):
         header = ttk.Frame(self)
         header.pack(fill=tk.X, pady=10)
 
-        back_btn = ttk.Button(header, text="🔙 Назад", command=self.on_back, width=15)
+        back_btn = ttk.Button(
+            header,
+            text="🔙 Назад",
+            command=cast(Callable[[], Any], self.on_back),
+            width=15,
+        )
         back_btn.pack(side=tk.LEFT, padx=10)
 
         title = ttk.Label(
@@ -226,7 +232,7 @@ class TestSolver(ttk.Frame):
             btn = ttk.Button(
                 self.answers_frame,
                 text=f"Вариант {chr(65+i)}",
-                command=lambda idx=i: self._select_answer(idx),
+                command=functools.partial(self._select_answer, i),
                 width=40,
             )
             btn.pack(fill=tk.X, pady=3)
@@ -436,7 +442,7 @@ class TestSolver(ttk.Frame):
 
     def _use_demo_test(self, topic: str) -> None:
         """Использование демо-теста по теме."""
-        demo_test = {
+        demo_test: Dict[str, Any] = {
             "test_id": f"demo_{topic}",
             "topic": topic,
             "difficulty": "mixed",
@@ -534,7 +540,7 @@ class TestSolver(ttk.Frame):
 
     def _use_demo_all_topics_test(self, num_questions: int = 10) -> None:
         """Использование демо-теста по всем темам."""
-        demo_test = {
+        demo_test: Dict[str, Any] = {
             "test_id": "demo_all_topics",
             "topic": "Все темы",
             "difficulty": "mixed",

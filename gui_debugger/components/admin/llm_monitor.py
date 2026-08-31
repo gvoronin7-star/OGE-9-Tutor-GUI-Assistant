@@ -8,7 +8,7 @@
 import tkinter as tk
 from datetime import datetime
 from tkinter import messagebox, ttk
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 
 class LLMMonitor(ttk.Frame):
@@ -168,10 +168,12 @@ class LLMMonitor(ttk.Frame):
         )
 
         # Статистика
-        self.requests_card.winfo_children()[1].configure(text=str(used))
-        self.avg_time_card.winfo_children()[1].configure(text="1.23с")
-        self.errors_card.winfo_children()[1].configure(text="2")
-        self.success_card.winfo_children()[1].configure(text="99.4%")
+        cast(ttk.Label, self.requests_card.winfo_children()[1]).configure(
+            text=str(used)
+        )
+        cast(ttk.Label, self.avg_time_card.winfo_children()[1]).configure(text="1.23с")
+        cast(ttk.Label, self.errors_card.winfo_children()[1]).configure(text="2")
+        cast(ttk.Label, self.success_card.winfo_children()[1]).configure(text="99.4%")
 
         # Логи ошибок
         self.errors_text.delete(1.0, tk.END)

@@ -34,8 +34,8 @@ class UserMode(ttk.Frame):
         self.test_generator = test_generator
         self.on_back_to_selector = on_back_to_selector
 
-        self.current_panel = None
-        self.user_data = {
+        self.current_panel: Optional[tk.Widget] = None
+        self.user_data: Dict[str, Any] = {
             "name": "Ученик",
             "progress": {
                 "topics_studied": 0,

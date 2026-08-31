@@ -6,10 +6,11 @@
 """
 
 import asyncio
+import functools
 import threading
 import tkinter as tk
 from tkinter import scrolledtext, ttk
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from gui_debugger.utils.gui_logger import gui_action_logger, log_action, log_error
 
@@ -56,7 +57,12 @@ class TopicStudy(ttk.Frame):
         header = ttk.Frame(self)
         header.pack(fill=tk.X, pady=10)
 
-        back_btn = ttk.Button(header, text="🔙 Назад", command=self.on_back, width=15)
+        back_btn = ttk.Button(
+            header,
+            text="🔙 Назад",
+            command=cast(Callable[[], Any], self.on_back),
+            width=15,
+        )
         back_btn.pack(side=tk.LEFT, padx=10)
 
         title = ttk.Label(
@@ -77,7 +83,9 @@ class TopicStudy(ttk.Frame):
             col = i % 3
 
             btn = ttk.Button(
-                topics_frame, text=topic, command=lambda t=topic: self._select_topic(t)
+                topics_frame,
+                text=topic,
+                command=functools.partial(self._select_topic, topic),
             )
             btn.grid(row=row, column=col, padx=5, pady=5, sticky="ew")
 

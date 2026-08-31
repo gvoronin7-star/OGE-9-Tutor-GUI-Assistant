@@ -15,7 +15,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-from typing import Any, Optional
+from typing import Any, Callable, Optional, cast
 
 from gui_debugger.utils.gui_logger import log_action, log_error
 
@@ -29,7 +29,7 @@ class RAGManager(ttk.Frame):
         self,
         parent: tk.Widget,
         rag_pipeline: Optional[Any] = None,
-        on_back: Optional[callable] = None,
+        on_back: Optional[Callable[[], Any]] = None,
     ) -> None:
         """
         Инициализация панели управления RAG.
@@ -43,8 +43,8 @@ class RAGManager(ttk.Frame):
         self.rag_pipeline = rag_pipeline
         self.on_back = on_back
 
-        self.current_base_path = None
-        self.new_base_path = None
+        self.current_base_path: Optional[Path] = None
+        self.new_base_path: Optional[Path] = None
 
         self._create_widgets()
         self._update_status()
@@ -55,7 +55,12 @@ class RAGManager(ttk.Frame):
         header = ttk.Frame(self)
         header.pack(fill=tk.X, pady=10)
 
-        back_btn = ttk.Button(header, text="🔙 Назад", command=self.on_back, width=15)
+        back_btn = ttk.Button(
+            header,
+            text="🔙 Назад",
+            command=cast(Callable[[], Any], self.on_back),
+            width=15,
+        )
         back_btn.pack(side=tk.LEFT, padx=10)
 
         title = ttk.Label(

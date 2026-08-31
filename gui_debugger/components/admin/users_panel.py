@@ -24,7 +24,7 @@ class UsersPanel(ttk.Frame):
         super().__init__(parent)
 
         self.users_data = self._get_demo_users()
-        self.selected_user = None
+        self.selected_user: Optional[Dict[str, Any]] = None
 
         self._create_widgets()
         self._populate_users()

@@ -6,7 +6,7 @@
 import tkinter as tk
 from datetime import datetime, timedelta
 from tkinter import ttk
-from typing import Any, Optional
+from typing import Any, List, Optional, Tuple, cast
 
 
 class MetricsPanel(ttk.Frame):
@@ -22,7 +22,7 @@ class MetricsPanel(ttk.Frame):
         """
         super().__init__(parent)
         self.rag_pipeline = rag_pipeline
-        self.request_times = []
+        self.request_times: List[Tuple[datetime, float]] = []
 
         self._create_widgets()
         self._start_auto_refresh()
@@ -132,12 +132,18 @@ class MetricsPanel(ttk.Frame):
             errors = metrics.get("rag_errors", 0)
             avg_time = metrics.get("rag_avg_response_time", 0)
 
-            self.requests_card.winfo_children()[1].configure(text=str(total))
-            self.cache_card.winfo_children()[1].configure(
+            cast(ttk.Label, self.requests_card.winfo_children()[1]).configure(
+                text=str(total)
+            )
+            cast(ttk.Label, self.cache_card.winfo_children()[1]).configure(
                 text=f"{cache_hits} ({cache_rate:.1f}%)"
             )
-            self.errors_card.winfo_children()[1].configure(text=str(errors))
-            self.time_card.winfo_children()[1].configure(text=f"~{avg_time:.2f}с")
+            cast(ttk.Label, self.errors_card.winfo_children()[1]).configure(
+                text=str(errors)
+            )
+            cast(ttk.Label, self.time_card.winfo_children()[1]).configure(
+                text=f"~{avg_time:.2f}с"
+            )
 
             # Детальная статистика
             self.detail_text.delete(1.0, tk.END)

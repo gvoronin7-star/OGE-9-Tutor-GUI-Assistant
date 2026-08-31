@@ -6,10 +6,11 @@
 """
 
 import asyncio
+import functools
 import tkinter as tk
 from datetime import datetime
 from tkinter import scrolledtext, ttk
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 
 class ChatPanel(ttk.Frame):
@@ -25,7 +26,7 @@ class ChatPanel(ttk.Frame):
         """
         super().__init__(parent)
         self.rag_pipeline = rag_pipeline
-        self.chat_history = []
+        self.chat_history: List[Any] = []
 
         self._create_widgets()
 
@@ -96,7 +97,7 @@ class ChatPanel(ttk.Frame):
             btn = ttk.Button(
                 commands_frame,
                 text=cmd,
-                command=lambda c=cmd: self._quick_command(c),
+                command=functools.partial(self._quick_command, cmd),
                 width=15,
             )
             btn.pack(side=tk.LEFT, padx=2, pady=2)

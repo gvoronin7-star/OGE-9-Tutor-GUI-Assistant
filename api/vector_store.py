@@ -44,7 +44,7 @@ class VectorStore:
         """
         self.index_dir = index_dir
         self.model: Optional[SentenceTransformer] = None
-        self.index = None
+        self.index: Optional[Any] = None
         self.chunks_data: Dict[str, Dict[str, Any]] = {}
         self.embedding_dim = 768  # Размерность эмбеддингов
 
@@ -60,7 +60,7 @@ class VectorStore:
         try:
             # Использование легкой модели для скорости
             self.model = SentenceTransformer("cointegrated/rubert-tiny2")
-            self.embedding_dim = self.model.get_sentence_embedding_dimension()
+            self.embedding_dim = self.model.get_sentence_embedding_dimension()  # type: ignore[assignment]
             logger.info(f"Модель загружена, размерность: {self.embedding_dim}")
         except Exception as e:
             logger.error(f"Ошибка загрузки модели: {e}")
@@ -109,7 +109,7 @@ class VectorStore:
 
             # Загрузка модели
             self.model = SentenceTransformer("cointegrated/rubert-tiny2")
-            self.embedding_dim = self.model.get_sentence_embedding_dimension()
+            self.embedding_dim = self.model.get_sentence_embedding_dimension()  # type: ignore[assignment]
 
         except Exception as e:
             logger.error(f"Ошибка загрузки индекса: {e}")
@@ -181,7 +181,7 @@ class VectorStore:
                 batch_embeddings = self.model.encode(batch, show_progress_bar=False)
                 embeddings.append(batch_embeddings)
 
-            embeddings = np.vstack(embeddings).astype("float32")
+            embeddings = np.vstack(embeddings).astype("float32")  # type: ignore[assignment]
 
             # Нормализация эмбеддингов через numpy (надёжнее для Python 3.14)
             norms = np.linalg.norm(embeddings, axis=1, keepdims=True)

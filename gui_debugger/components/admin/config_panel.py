@@ -25,7 +25,7 @@ class ConfigPanel(ttk.Frame):
         super().__init__(parent)
 
         self.config_file = Path(".env")
-        self.current_config = {}
+        self.current_config: Dict[str, Any] = {}
 
         self._create_widgets()
         self._load_config()
