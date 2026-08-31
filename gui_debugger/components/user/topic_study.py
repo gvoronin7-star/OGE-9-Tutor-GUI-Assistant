@@ -218,12 +218,10 @@ class TopicStudy(ttk.Frame):
             }
 
     def _process_topic(self, topic: str) -> None:
-        """Обработка запроса к теме."""
-        try:
-            from gui_debugger.utils.async_helper import async_helper
+        """Обработка запроса к теме (без блокировки GUI)."""
+        from gui_debugger.utils.async_helper import async_helper
 
-            result = async_helper.run_async(self._async_query(f"Объясни тему: {topic}"))
-
+        def on_success(result: dict) -> None:
             # Скрытие индикатора прогресса
             self.progress_bar.stop()
             self.progress_frame.pack_forget()
@@ -267,7 +265,7 @@ class TopicStudy(ttk.Frame):
             if self.on_topic_complete:
                 self.on_topic_complete(topic)
 
-        except Exception as e:
+        def on_error(e: BaseException) -> None:
             # Скрытие индикатора прогресса при ошибке
             self.progress_bar.stop()
             self.progress_frame.pack_forget()
@@ -276,6 +274,10 @@ class TopicStudy(ttk.Frame):
             self.answer_area.delete(1.0, tk.END)
             self.answer_area.insert(tk.END, f"❌ Ошибка: {str(e)}\n", "text")
             self.status_label.configure(text="Ошибка загрузки", foreground="#e81123")
+
+        async_helper.run_async_in_background(
+            self, self._async_query(f"Объясни тему: {topic}"), on_success, on_error
+        )
 
     def _give_feedback(self, feedback: str) -> None:
         """

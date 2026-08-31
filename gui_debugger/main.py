@@ -12,9 +12,7 @@ import argparse
 import asyncio
 import os
 import sys
-import threading
 from pathlib import Path
-from typing import Optional
 
 # Корневая папка проекта
 project_root = Path(__file__).parent.parent.absolute()
@@ -26,31 +24,6 @@ from dotenv import load_dotenv
 env_path = project_root / ".env"
 if env_path.exists():
     load_dotenv(env_path)
-
-
-# Глобальный event loop для использования в GUI
-_gui_loop: Optional[asyncio.AbstractEventLoop] = None
-_gui_loop_thread: Optional[threading.Thread] = None
-
-
-def _run_loop_forever(loop: asyncio.AbstractEventLoop) -> None:
-    """Запуск loop навсегда в фоновом потоке."""
-    loop.run_forever()
-
-
-def get_or_create_loop() -> asyncio.AbstractEventLoop:
-    """Получение или создание event loop для GUI."""
-    global _gui_loop, _gui_loop_thread
-
-    if _gui_loop is None or _gui_loop.is_closed():
-        _gui_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(_gui_loop)
-        _gui_loop_thread = threading.Thread(
-            target=_run_loop_forever, args=(_gui_loop,), daemon=True
-        )
-        _gui_loop_thread.start()
-
-    return _gui_loop
 
 
 def initialize_rag():

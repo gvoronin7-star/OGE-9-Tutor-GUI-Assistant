@@ -176,14 +176,10 @@ class ChatPanel(ttk.Frame):
             }
 
     def _process_query(self, query: str) -> None:
-        """Обработка запроса."""
-        try:
-            # Запуск асинхронного запроса
-            from gui_debugger.utils.async_helper import async_helper
+        """Обработка запроса (без блокировки GUI)."""
+        from gui_debugger.utils.async_helper import async_helper
 
-            result = async_helper.run_async(self._async_query(query))
-
-            # Отображение ответа
+        def on_success(result: dict) -> None:
             answer = result.get("answer", "Нет ответа")
             sources = result.get("sources", [])
             response_time = result.get("response_time", 0)
@@ -203,9 +199,13 @@ class ChatPanel(ttk.Frame):
             # Обновление статуса
             self.status_label.configure(text="● Готов к работе", foreground="#107c10")
 
-        except Exception as e:
+        def on_error(e: BaseException) -> None:
             self._add_bot_message(f"❌ Ошибка: {str(e)}")
             self.status_label.configure(text="● Ошибка", foreground="#e81123")
+
+        async_helper.run_async_in_background(
+            self, self._async_query(query), on_success, on_error
+        )
 
     def clear_chat(self) -> None:
         """Очистка чата."""

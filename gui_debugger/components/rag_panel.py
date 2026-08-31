@@ -134,51 +134,48 @@ class RAGPanel(ttk.Frame):
             )
 
     def _test_search(self) -> None:
-        """Тестовый поиск."""
+        """Тестовый поиск (без блокировки GUI)."""
         query = self.test_query_var.get()
-        top_k = int(self.top_k_var.get())
 
         self.log_label.configure(text=f"Поиск: {query}", foreground="#0078d4")
 
-        try:
-            from gui_debugger.utils.async_helper import async_helper
+        if not self.rag_pipeline:
+            self.results_area.insert(tk.END, "RAG-пайплайн не инициализирован\n")
+            return
 
-            if self.rag_pipeline:
-                results = async_helper.run_async(
-                    self.rag_pipeline._search_chunks(query)
+        from gui_debugger.utils.async_helper import async_helper
+
+        def on_success(results: list) -> None:
+            self.results_area.delete(1.0, tk.END)
+
+            if results:
+                self.results_area.insert(tk.END, f"Найдено чанков: {len(results)}\n\n")
+
+                for i, result in enumerate(results, 1):
+                    chunk_info = (
+                        f"[{i}] Score: {result.get('score', 0):.3f}\n"
+                        f"    Тема: {result.get('topic', 'unknown')}\n"
+                        f"    Type: {result.get('search_type', 'unknown')}\n"
+                        f"    Текст: {result.get('text', '')[:200]}...\n\n"
+                    )
+                    self.results_area.insert(tk.END, chunk_info)
+
+                self.log_label.configure(
+                    text=f"✅ Успешно найдено: {len(results)}", foreground="#107c10"
+                )
+            else:
+                self.results_area.insert(tk.END, "Ничего не найдено\n")
+                self.log_label.configure(
+                    text="⚠️ Ничего не найдено", foreground="#ffb900"
                 )
 
-                # Отображение результатов
-                self.results_area.delete(1.0, tk.END)
-
-                if results:
-                    self.results_area.insert(
-                        tk.END, f"Найдено чанков: {len(results)}\n\n"
-                    )
-
-                    for i, result in enumerate(results, 1):
-                        chunk_info = (
-                            f"[{i}] Score: {result.get('score', 0):.3f}\n"
-                            f"    Тема: {result.get('topic', 'unknown')}\n"
-                            f"    Type: {result.get('search_type', 'unknown')}\n"
-                            f"    Текст: {result.get('text', '')[:200]}...\n\n"
-                        )
-                        self.results_area.insert(tk.END, chunk_info)
-
-                    self.log_label.configure(
-                        text=f"✅ Успешно найдено: {len(results)}", foreground="#107c10"
-                    )
-                else:
-                    self.results_area.insert(tk.END, "Ничего не найдено\n")
-                    self.log_label.configure(
-                        text="⚠️ Ничего не найдено", foreground="#ffb900"
-                    )
-            else:
-                self.results_area.insert(tk.END, "RAG-пайплайн не инициализирован\n")
-
-        except Exception as e:
+        def on_error(e: BaseException) -> None:
             self.results_area.insert(tk.END, f"Ошибка: {str(e)}\n")
             self.log_label.configure(text=f"❌ Ошибка: {str(e)}", foreground="#e81123")
+
+        async_helper.run_async_in_background(
+            self, self.rag_pipeline._search_chunks(query), on_success, on_error
+        )
 
     def clear_results(self) -> None:
         """Очистка результатов."""

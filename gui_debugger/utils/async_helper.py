@@ -6,7 +6,9 @@
 """
 
 import asyncio
-from typing import Any
+import threading
+import tkinter as tk
+from typing import Any, Callable, Optional
 
 
 class AsyncHelper:
@@ -14,11 +16,33 @@ class AsyncHelper:
 
     def __init__(self) -> None:
         """Инициализация помощника."""
-        pass
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._loop_thread: Optional[threading.Thread] = None
+
+    def _get_or_create_loop(self) -> asyncio.AbstractEventLoop:
+        """
+        Получение постоянного event loop, работающего в фоновом потоке.
+
+        Loop создаётся один раз и живёт всё время работы приложения —
+        это позволяет отправлять в него корутины без блокировки GUI.
+        """
+        if self._loop is None or self._loop.is_closed():
+            self._loop = asyncio.new_event_loop()
+            self._loop_thread = threading.Thread(
+                target=self._loop.run_forever, daemon=True
+            )
+            self._loop_thread.start()
+
+        return self._loop
 
     def run_async(self, coro: Any) -> Any:
         """
         Запуск асинхронной функции.
+
+        Блокирует вызывающий поток до получения результата — использовать
+        только вне главного потока Tk (например, в отдельном потоке).
+        Для запуска из обработчика виджета используйте
+        run_async_in_background().
 
         Args:
             coro: Асинхронная корутина
@@ -40,29 +64,50 @@ class AsyncHelper:
                     loop.close()
             raise
 
-    def run_async_callback(self, func: Any, *args: Any, **kwargs: Any) -> None:
+    def run_async_in_background(
+        self,
+        widget: tk.Misc,
+        coro: Any,
+        on_success: Callable[[Any], None],
+        on_error: Callable[[BaseException], None],
+        poll_interval_ms: int = 50,
+    ) -> None:
         """
-        Запуск асинхронной функции с callback (fire and forget).
+        Запуск корутины в фоновом event loop без блокировки GUI.
+
+        Корутина выполняется в отдельном потоке с постоянным event loop.
+        Готовность результата проверяется периодическим опросом через
+        `widget.after(...)`, поэтому on_success/on_error вызываются на
+        главном потоке Tk — внутри них безопасно обращаться к виджетам.
 
         Args:
-            func: Асинхронная функция для вызова
-            args: Позиционные аргументы
-            kwargs: Именованные аргументы
+            widget: Виджет, через который планируется опрос (`.after()`)
+            coro: Асинхронная корутина для выполнения
+            on_success: Вызывается с результатом корутины при успехе
+            on_error: Вызывается с исключением при ошибке
+            poll_interval_ms: Интервал опроса готовности результата
         """
-        import threading
+        loop = self._get_or_create_loop()
+        future = asyncio.run_coroutine_threadsafe(coro, loop)
 
-        def run():
+        def _poll() -> None:
+            if not future.done():
+                widget.after(poll_interval_ms, _poll)
+                return
+
             try:
-                asyncio.run(func(*args, **kwargs))
-            except Exception as e:
-                print(f"Async callback error: {e}")
+                result = future.result()
+            except BaseException as e:  # noqa: BLE001 - пробрасываем в on_error
+                on_error(e)
+            else:
+                on_success(result)
 
-        thread = threading.Thread(target=run, daemon=True)
-        thread.start()
+        widget.after(poll_interval_ms, _poll)
 
     def stop(self) -> None:
-        """Остановка (nop для нового подхода)."""
-        pass
+        """Остановка фонового event loop (если был создан)."""
+        if self._loop is not None and not self._loop.is_closed():
+            self._loop.call_soon_threadsafe(self._loop.stop)
 
 
 # Глобальный экземпляр

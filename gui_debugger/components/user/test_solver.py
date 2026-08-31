@@ -387,58 +387,62 @@ class TestSolver(ttk.Frame):
         self.timer_job = self.after(100, self._update_timer)
 
     def _generate_test_async(self, topic: str) -> None:
-        """Асинхронная генерация теста."""
-        try:
-            from gui_debugger.utils.async_helper import async_helper
+        """Асинхронная генерация теста (без блокировки GUI)."""
+        from gui_debugger.utils.async_helper import async_helper
 
-            self.loading_label.configure(text="⏳ Загрузка тестов...")
+        self.loading_label.configure(text="⏳ Загрузка тестов...")
 
-            test = async_helper.run_async(
-                self.test_generator.generate_test(topic, "mixed", num_questions=5)
-            )
-
+        def on_success(test: Optional[Dict[str, Any]]) -> None:
+            self.loading_label.configure(text="")
             if test and "error" not in test:
-                self.loading_label.configure(text="")
                 self._load_test(test)
             else:
-                self.loading_label.configure(text="")
                 messagebox.showerror(
-                    "Ошибка", test.get("error", "Не удалось сгенерировать тест")
+                    "Ошибка",
+                    (test or {}).get("error", "Не удалось сгенерировать тест"),
                 )
                 self._use_demo_test(topic)
 
-        except Exception as e:
+        def on_error(e: BaseException) -> None:
             self.loading_label.configure(text="")
             messagebox.showerror("Ошибка", f"Ошибка генерации: {str(e)}")
             self._use_demo_test(topic)
 
+        async_helper.run_async_in_background(
+            self,
+            self.test_generator.generate_test(topic, "mixed", num_questions=5),
+            on_success,
+            on_error,
+        )
+
     def _generate_all_topics_test_async(self, num_questions: int = 10) -> None:
-        """Асинхронная генерация теста по всем темам."""
-        try:
-            from gui_debugger.utils.async_helper import async_helper
+        """Асинхронная генерация теста по всем темам (без блокировки GUI)."""
+        from gui_debugger.utils.async_helper import async_helper
 
-            self.loading_label.configure(text="⏳ Загрузка тестов...")
+        self.loading_label.configure(text="⏳ Загрузка тестов...")
 
-            test = async_helper.run_async(
-                self.test_generator.generate_all_topics_test(
-                    num_questions=num_questions
-                )
-            )
-
+        def on_success(test: Optional[Dict[str, Any]]) -> None:
+            self.loading_label.configure(text="")
             if test and "error" not in test:
-                self.loading_label.configure(text="")
                 self._load_test(test)
             else:
-                self.loading_label.configure(text="")
                 messagebox.showerror(
-                    "Ошибка", test.get("error", "Не удалось сгенерировать тест")
+                    "Ошибка",
+                    (test or {}).get("error", "Не удалось сгенерировать тест"),
                 )
                 self._use_demo_all_topics_test(num_questions)
 
-        except Exception as e:
+        def on_error(e: BaseException) -> None:
             self.loading_label.configure(text="")
             messagebox.showerror("Ошибка", f"Ошибка генерации: {str(e)}")
             self._use_demo_all_topics_test(num_questions)
+
+        async_helper.run_async_in_background(
+            self,
+            self.test_generator.generate_all_topics_test(num_questions=num_questions),
+            on_success,
+            on_error,
+        )
 
     def _use_demo_test(self, topic: str) -> None:
         """Использование демо-теста по теме."""
