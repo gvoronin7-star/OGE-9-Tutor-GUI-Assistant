@@ -2,8 +2,8 @@
 
 📚 **Десктопное приложение для подготовки к ОГЭ по обществознанию** с RAG-пайплайном и интеллектуальной генерацией вопросов.
 
-[![Python Tests](https://github.com/gvoronin7-star/oge-tutor/actions/workflows/python-test.yml/badge.svg)](https://github.com/gvoronin7-star/oge-tutor/actions/workflows/python-test.yml)
-[![Lint](https://github.com/gvoronin7-star/oge-tutor/actions/workflows/lint.yml/badge.svg)](https://github.com/gvoronin7-star/oge-tutor/actions/workflows/lint.yml)
+[![Python Tests](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/python-test.yml/badge.svg)](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/python-test.yml)
+[![Lint](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/lint.yml/badge.svg)](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/lint.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -65,10 +65,10 @@ python -m gui_debugger.main --mode admin
 |-----------|------------|
 | GUI | Tkinter + ttkbootstrap |
 | Backend | FastAPI 0.109.0 |
-| Векторный поиск | Faiss 1.7.4 |
+| Векторный поиск | Faiss 1.13.2 |
 | Полнотекстовый поиск | Whoosh 2.7.4 |
 | LLM | GPT-4o-mini (via ProxyAPI) |
-| Embeddings | sentence-transformers 2.3.1 |
+| Embeddings | OpenAI `text-embedding-3-small` (основная база ФИПИ) / sentence-transformers 2.3.1 (локальный fallback) |
 | Кэширование | Redis / In-memory |
 
 ---
@@ -78,7 +78,7 @@ python -m gui_debugger.main --mode admin
 ```bash
 # 1. Клонировать репозиторий
 git clone <repository-url>
-cd oge-tutor
+cd OGE-9-Tutor-GUI-Assistant
 
 # 2. Создать виртуальное окружение
 python -m venv venv
@@ -124,13 +124,12 @@ pytest --cov=. --cov-report=html
 ## 📝 Структура проекта
 
 ```
-oge-tutor/
+OGE-9-Tutor-GUI-Assistant/
 ├── README.md                     # Этот файл
 ├── CHANGELOG.md                  # История изменений
 ├── KODA.md                       # Инструкции для AI-ассистентов
 ├── requirements.txt              # Зависимости Python
 ├── main.py                       # FastAPI сервер
-├── docker-compose.yml            # Оркестрация сервисов
 │
 ├── api/                          # RAG-пайплайн и API
 │   ├── rag_pipeline.py           # Основной пайплайн
@@ -148,10 +147,13 @@ oge-tutor/
 │   ├── logger.py                 # Логирование
 │   └── cache.py                  # Кэширование
 │
+├── scripts/                      # Вспомогательные скрипты (проверка секретов, интеграция базы)
+│
 ├── data/                         # Данные
 │   ├── chunks/                   # Чанки знаний
 │   ├── metadata/                 # Метаданные
-│   └── indices/                  # Индексы поиска
+│   ├── indices/                  # Индексы поиска
+│   └── backup/                   # Резервные копии
 │
 ├── docs/                         # Документация
 └── tests/                        # Тесты

@@ -194,7 +194,7 @@ class LogsViewer(ttk.Frame):
                             row.get("query_text", "")[:50],
                             row.get("topic", ""),
                             row.get("total_response_time", ""),
-                            "✅" if row.get("is_cached") == "True" else "❌",
+                            "✅" if row.get("is_cached") == "1" else "❌",
                         ],
                     )
 
@@ -237,7 +237,7 @@ class LogsViewer(ttk.Frame):
                     row.get("query_text", "")[:50],
                     row.get("topic", ""),
                     row.get("total_response_time", ""),
-                    "✅" if row.get("is_cached") == "True" else "❌",
+                    "✅" if row.get("is_cached") == "1" else "❌",
                 ],
             )
 
@@ -272,7 +272,7 @@ class LogsViewer(ttk.Frame):
             except:
                 pass
 
-            if row.get("is_cached") == "True":
+            if row.get("is_cached") == "1":
                 cache_hits += 1
 
         avg_time = sum(times) / len(times) if times else 0

@@ -43,7 +43,6 @@ class RAGManager(ttk.Frame):
         self.rag_pipeline = rag_pipeline
         self.on_back = on_back
 
-        self.current_base_path: Optional[Path] = None
         self.new_base_path: Optional[Path] = None
 
         self._create_widgets()
@@ -392,51 +391,80 @@ class RAGManager(ttk.Frame):
             self._upload_error(str(e))
 
     def _set_operation_status(self, message: str) -> None:
-        """Обновление статуса операции."""
-        self.operation_status_label.configure(text=message, foreground="#0078d4")
-        self.update()
+        """
+        Обновление статуса операции.
+
+        Вызывается из фонового потока (`_upload_base_thread`) — маршалит
+        обращение к виджетам на главный поток через `after()`, поскольку
+        Tkinter не потокобезопасен.
+        """
+
+        def _do() -> None:
+            self.operation_status_label.configure(text=message, foreground="#0078d4")
+            self.update()
+
+        self.after(0, _do)
 
     def _upload_success(self) -> None:
-        """Успешная загрузка базы."""
-        self.operation_status_label.configure(
-            text="✅ База успешно заменена!", foreground="#107c10"
-        )
-        self.status_bar.configure(text="Готово", foreground="#107c10")
-        self.upload_btn.configure(state=tk.NORMAL)
+        """
+        Успешная загрузка базы.
 
-        # Обновить статус текущей базы
-        self._update_status()
+        Вызывается из фонового потока — маршалит на главный поток через
+        `after()`, поскольку Tkinter/`messagebox` не потокобезопасны.
+        """
 
-        # Логирование
-        log_action(
-            "rag_base_replaced", {"new_path": str(self.new_base_path), "success": True}
-        )
+        def _do() -> None:
+            self.operation_status_label.configure(
+                text="✅ База успешно заменена!", foreground="#107c10"
+            )
+            self.status_bar.configure(text="Готово", foreground="#107c10")
+            self.upload_btn.configure(state=tk.NORMAL)
 
-        messagebox.showinfo(
-            "Успех",
-            "База данных успешно заменена!\n\n"
-            "Старая база сохранена в RAG_data_base_backup/\n\n"
-            "Рекомендуется проверить работу системы.",
-        )
+            # Обновить статус текущей базы
+            self._update_status()
 
-        self.new_base_path = None
-        self.path_var.set("")
-        self.new_base_info_label.configure(
-            text="Папка не выбрана", foreground="#808080"
-        )
+            # Логирование
+            log_action(
+                "rag_base_replaced",
+                {"new_path": str(self.new_base_path), "success": True},
+            )
+
+            messagebox.showinfo(
+                "Успех",
+                "База данных успешно заменена!\n\n"
+                "Старая база сохранена в RAG_data_base_backup/\n\n"
+                "Рекомендуется проверить работу системы.",
+            )
+
+            self.new_base_path = None
+            self.path_var.set("")
+            self.new_base_info_label.configure(
+                text="Папка не выбрана", foreground="#808080"
+            )
+
+        self.after(0, _do)
 
     def _upload_error(self, error_message: str) -> None:
-        """Ошибка загрузки базы."""
-        self.operation_status_label.configure(
-            text=f"❌ Ошибка: {error_message}", foreground="#e81123"
-        )
-        self.status_bar.configure(text="Ошибка", foreground="#e81123")
-        self.upload_btn.configure(state=tk.NORMAL)
+        """
+        Ошибка загрузки базы.
 
-        # Логирование
-        log_error("rag_base_replaced", error_message)
+        Вызывается из фонового потока — маршалит на главный поток через
+        `after()`, поскольку Tkinter/`messagebox` не потокобезопасны.
+        """
 
-        messagebox.showerror("Ошибка замены базы", error_message)
+        def _do() -> None:
+            self.operation_status_label.configure(
+                text=f"❌ Ошибка: {error_message}", foreground="#e81123"
+            )
+            self.status_bar.configure(text="Ошибка", foreground="#e81123")
+            self.upload_btn.configure(state=tk.NORMAL)
+
+            # Логирование
+            log_error("rag_base_replaced", error_message)
+
+            messagebox.showerror("Ошибка замены базы", error_message)
+
+        self.after(0, _do)
 
     def _update_status(self) -> None:
         """Обновление статуса текущей базы."""

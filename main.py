@@ -11,9 +11,10 @@
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -31,7 +32,7 @@ if env_path.exists():
 
 
 # Настройка логирования
-setup_logging()
+setup_logging(log_level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 
@@ -51,18 +52,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Запуск приложения OGE Tutor...")
 
     try:
-        # Инициализация кэш-менеджера (с поддержкой fakeredis)
-        cache_manager = CacheManager()
-        try:
-            await cache_manager.initialize()
-            app.state.cache_manager = cache_manager
+        # Инициализация кэш-менеджера (с фолбэком на in-memory, если Redis недоступен)
+        cache_manager: Any = CacheManager()
+        await cache_manager.initialize()
+
+        if await cache_manager.ping():
             logger.info("Кэш-менеджер инициализирован")
-        except Exception as cache_err:
-            logger.warning(f"Redis недоступен, используем in-memory кэш: {cache_err}")
+        else:
+            logger.warning("Redis недоступен, используем in-memory кэш")
             from utils.cache import InMemoryCache
 
-            app.state.cache_manager = InMemoryCache()
+            cache_manager = InMemoryCache()
+            await cache_manager.initialize()
             logger.info("Используется in-memory кэш")
+
+        app.state.cache_manager = cache_manager
 
         # Инициализация RAG-пайплайна
         rag_pipeline = RAGPipeline(cache_manager)
@@ -98,7 +102,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title="OGE Tutor API",
     description="API для RAG-ассистента подготовки к ОГЭ по обществознанию",
-    version="1.0.0",
+    version="2.3.0",
     lifespan=lifespan,
 )
 
@@ -112,7 +116,7 @@ async def root() -> JSONResponse:
         JSONResponse: Статус приложения
     """
     return JSONResponse(
-        {"status": "online", "service": "OGE Tutor", "version": "1.0.0"}
+        {"status": "online", "service": "OGE Tutor", "version": "2.3.0"}
     )
 
 
@@ -125,9 +129,9 @@ async def health_check() -> JSONResponse:
         JSONResponse: Статус всех компонентов системы
     """
     try:
-        cache_status = "ok"
+        cache_status = "not_initialized"
         if hasattr(app.state, "cache_manager"):
-            await app.state.cache_manager.ping()
+            cache_status = "ok" if await app.state.cache_manager.ping() else "down"
 
         return JSONResponse(
             {

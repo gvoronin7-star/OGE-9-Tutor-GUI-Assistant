@@ -24,7 +24,7 @@ class ConfigPanel(ttk.Frame):
         """
         super().__init__(parent)
 
-        self.config_file = Path(".env")
+        self.config_file = Path("gui_debugger/config.json")
         self.current_config: Dict[str, Any] = {}
 
         self._create_widgets()
@@ -244,9 +244,43 @@ class ConfigPanel(ttk.Frame):
         return tab
 
     def _load_config(self) -> None:
-        """Загрузка конфигурации."""
-        # В реальной версии — загрузка из .env
-        messagebox.showinfo("Конфигурация", "Загружена конфигурация по умолчанию")
+        """Загрузка конфигурации из файла (если ранее сохранялась)."""
+        if not self.config_file.exists():
+            messagebox.showinfo(
+                "Конфигурация",
+                "Файл конфигурации не найден — используются значения по умолчанию",
+            )
+            return
+
+        try:
+            with open(self.config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось загрузить конфигурацию: {e}")
+            return
+
+        rag = config.get("rag", {})
+        llm = config.get("llm", {})
+        cache = config.get("cache", {})
+
+        self.top_k_var.set(str(rag.get("top_k", self.top_k_var.get())))
+        self.threshold_var.set(str(rag.get("threshold", self.threshold_var.get())))
+        self.rag_base_var.set(rag.get("use_rag_base", self.rag_base_var.get()))
+        self.faiss_var.set(rag.get("use_faiss", self.faiss_var.get()))
+        self.whoosh_var.set(rag.get("use_whoosh", self.whoosh_var.get()))
+
+        self.model_var.set(llm.get("model", self.model_var.get()))
+        self.timeout_var.set(str(llm.get("timeout", self.timeout_var.get())))
+        self.retries_var.set(str(llm.get("retries", self.retries_var.get())))
+        self.proxy_url_var.set(llm.get("proxy_url", self.proxy_url_var.get()))
+
+        self.ttl_top_var.set(str(cache.get("ttl_top", self.ttl_top_var.get())))
+        self.ttl_normal_var.set(str(cache.get("ttl_normal", self.ttl_normal_var.get())))
+        self.ttl_rare_var.set(str(cache.get("ttl_rare", self.ttl_rare_var.get())))
+        self.redis_host_var.set(cache.get("redis_host", self.redis_host_var.get()))
+        self.redis_port_var.set(str(cache.get("redis_port", self.redis_port_var.get())))
+
+        messagebox.showinfo("Конфигурация", "Конфигурация загружена")
 
     def _save_config(self) -> None:
         """Сохранение конфигурации."""
@@ -274,14 +308,13 @@ class ConfigPanel(ttk.Frame):
         }
 
         # Сохранение в файл
-        config_file = Path("gui_debugger/config.json")
-        config_file.parent.mkdir(parents=True, exist_ok=True)
+        self.config_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(config_file, "w", encoding="utf-8") as f:
+        with open(self.config_file, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
 
         messagebox.showinfo(
-            "Сохранение", "Конфигурация сохранена в gui_debugger/config.json"
+            "Сохранение", f"Конфигурация сохранена в {self.config_file}"
         )
 
     def _reset_config(self) -> None:

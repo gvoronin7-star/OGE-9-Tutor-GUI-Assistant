@@ -48,6 +48,7 @@ class TopicStudy(ttk.Frame):
         self.rag_pipeline = rag_pipeline
         self.on_back = on_back
         self.on_topic_complete = on_topic_complete
+        self.current_topic: Optional[str] = None
 
         self._create_widgets()
 
@@ -183,6 +184,8 @@ class TopicStudy(ttk.Frame):
         Args:
             topic: Название темы
         """
+        self.current_topic = topic
+
         # Логирование выбора темы
         topic_id = self.TOPICS.index(topic) if topic in self.TOPICS else -1
         gui_action_logger.log_topic_selection(topic, topic_id)
@@ -296,9 +299,6 @@ class TopicStudy(ttk.Frame):
             )
 
     def _retry(self) -> None:
-        """Повторный запрос."""
-        # Получение последней темы из статуса
-        status = self.status_label.cget("text")
-        if "Запрос по теме:" in status:
-            topic = status.split(":")[1].strip()
-            self._select_topic(topic)
+        """Повторный запрос по последней выбранной теме."""
+        if self.current_topic:
+            self._select_topic(self.current_topic)

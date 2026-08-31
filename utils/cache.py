@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, cast
 
 import redis.asyncio as redis
 
+from utils.hashing import stable_query_hash
 from utils.logger import query_stats_logger
 
 logger = logging.getLogger(__name__)
@@ -121,7 +122,7 @@ class CacheManager:
         Returns:
             str: Категория (top, medium, rare)
         """
-        query_hash = hash(query.lower().strip())
+        query_hash = stable_query_hash(query.lower().strip())
 
         top_queries = self.query_stats.get_top_queries(0.2)
         if query_hash in top_queries:
@@ -370,7 +371,7 @@ class InMemoryCache:
             return True
         return False
 
-    async def clear(self) -> bool:
+    async def clear_cache(self) -> bool:
         """Очистка кэша."""
         self.cache.clear()
         self.ttls.clear()

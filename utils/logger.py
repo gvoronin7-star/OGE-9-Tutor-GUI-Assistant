@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Optional
 
 from pythonjsonlogger import jsonlogger
 
+from utils.hashing import stable_query_hash
+
 
 class RequestLogger:
     """
@@ -203,7 +205,7 @@ class QueryStatsLogger:
             query: Текст запроса
         """
         # Нормализация запроса
-        query_hash = hash(query.lower().strip())
+        query_hash = stable_query_hash(query.lower().strip())
 
         if query_hash in self.query_stats:
             self.query_stats[query_hash] += 1

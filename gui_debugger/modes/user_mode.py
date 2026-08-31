@@ -67,6 +67,13 @@ class UserMode(ttk.Frame):
     def _clear_container(self) -> None:
         """Очистка контейнера."""
         if self.current_panel:
+            # Панели с отложенными after()-колбэками (например TestSolver)
+            # определяют cleanup() для их отмены — иначе колбэк стреляет
+            # уже после destroy() (_tkinter.TclError: invalid command name)
+            cleanup = getattr(self.current_panel, "cleanup", None)
+            if callable(cleanup):
+                cleanup()
+
             self.current_panel.pack_forget()
             self.current_panel.destroy()
 

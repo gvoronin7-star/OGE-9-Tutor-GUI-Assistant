@@ -137,6 +137,15 @@ class RAGPanel(ttk.Frame):
         """Тестовый поиск (без блокировки GUI)."""
         query = self.test_query_var.get()
 
+        try:
+            top_k = int(self.top_k_var.get())
+            threshold = float(self.threshold_var.get())
+        except ValueError:
+            self.log_label.configure(
+                text="❌ Top-K и Threshold должны быть числами", foreground="#e81123"
+            )
+            return
+
         self.log_label.configure(text=f"Поиск: {query}", foreground="#0078d4")
 
         if not self.rag_pipeline:
@@ -174,7 +183,10 @@ class RAGPanel(ttk.Frame):
             self.log_label.configure(text=f"❌ Ошибка: {str(e)}", foreground="#e81123")
 
         async_helper.run_async_in_background(
-            self, self.rag_pipeline._search_chunks(query), on_success, on_error
+            self,
+            self.rag_pipeline._search_chunks(query, top_k=top_k, min_score=threshold),
+            on_success,
+            on_error,
         )
 
     def clear_results(self) -> None:

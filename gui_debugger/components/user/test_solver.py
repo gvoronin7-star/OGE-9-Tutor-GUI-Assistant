@@ -63,6 +63,7 @@ class TestSolver(ttk.Frame):
         self.timer_running = False
         self.elapsed_time: float = 0
         self.timer_job: Optional[str] = None
+        self.auto_advance_job: Optional[str] = None
 
         # Предзагруженные тесты
         self.preloaded_tests: Dict[str, Dict] = {}
@@ -373,6 +374,21 @@ class TestSolver(ttk.Frame):
         self.timer_running = False
         if self.timer_job:
             self.after_cancel(self.timer_job)
+            self.timer_job = None
+
+    def cleanup(self) -> None:
+        """
+        Отмена всех отложенных `after()`-колбэков перед уничтожением панели.
+
+        Без этого выход из теста ("Назад") посреди прохождения оставляет
+        висящий таймер и/или автопереход к следующему вопросу, которые
+        стреляют уже после `destroy()` — `_tkinter.TclError: invalid
+        command name`.
+        """
+        self._stop_timer()
+        if self.auto_advance_job:
+            self.after_cancel(self.auto_advance_job)
+            self.auto_advance_job = None
 
     def _update_timer(self) -> None:
         """Обновление таймера."""
@@ -822,7 +838,7 @@ class TestSolver(ttk.Frame):
         )
 
         # Автопереход через 5 секунд (увеличено с 2 для удобства чтения)
-        self.after(5000, self._next_question)
+        self.auto_advance_job = self.after(5000, self._next_question)
 
     def _next_question(self) -> None:
         """Переход к следующему вопросу."""

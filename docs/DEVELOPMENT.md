@@ -30,7 +30,7 @@
 
 ```bash
 git clone <repository-url>
-cd oge-tutor
+cd OGE-9-Tutor-GUI-Assistant
 ```
 
 ### 2. Создание виртуального окружения
@@ -77,11 +77,20 @@ cp .env.example .env
 
 | Переменная | Описание | Пример |
 |------------|----------|--------|
-| `PROXY_API_KEY` | API-ключ для LLM | `your_key_here` |
-| `PROXY_API_URL` | URL ProxyAPI | `https://proxyapi.ru/gigachat` |
+| `PROXY_API_KEY` | API-ключ для LLM (GPT-4o-mini через ProxyAPI) | `your_key_here` |
+| `PROXY_API_URL` | URL ProxyAPI | `https://proxyapi.ru/openai` |
 | `REDIS_HOST` | Хост Redis (опционально) | `localhost` |
 | `REDIS_PORT` | Порт Redis (опционально) | `6379` |
-| `LOG_LEVEL` | Уровень логирования | `INFO` |
+| `LOG_LEVEL` | Уровень логирования (FastAPI backend) | `INFO` |
+
+**Дополнительные переменные** (для реальной базы ФИПИ вместо пустого
+локального индекса — см. `USE_EXISTING_INDEX` в `.env.example`):
+
+| Переменная | Описание | Пример |
+|------------|----------|--------|
+| `USE_EXISTING_INDEX` | Включить `ExistingVectorStore` (204 чанка ФИПИ) вместо пустого локального индекса | `true` |
+| `OPENAI_API_KEY` | Ключ для эмбеддингов `text-embedding-3-small` на пути `USE_EXISTING_INDEX=true` (falls back на `PROXY_API_KEY`, если не задан) | `sk-...` |
+| `OPENAI_BASE_URL` | Базовый URL для запроса эмбеддингов | `https://api.proxyapi.ru/openai/v1` |
 
 ### 2. Настройка Redis (опционально)
 
@@ -113,19 +122,6 @@ python main.py
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Docker Compose
-
-```bash
-# Запуск всех сервисов
-docker-compose up -d
-
-# Просмотр логов
-docker-compose logs -f
-
-# Остановка
-docker-compose down
-```
-
 ### Проверка работы
 
 После запуска FastAPI откройте в браузере:
@@ -136,13 +132,12 @@ docker-compose down
 ## Структура проекта
 
 ```
-oge-tutor/
+OGE-9-Tutor-GUI-Assistant/
 ├── README.md                     # Основной документ
 ├── CHANGELOG.md                  # История изменений
 ├── KODA.md                       # Инструкции для AI
 ├── requirements.txt              # Зависимости
 ├── main.py                       # FastAPI сервер
-├── docker-compose.yml            # Оркестрация
 │
 ├── api/                          # RAG-пайплайн и API
 │   ├── __init__.py
@@ -159,13 +154,15 @@ oge-tutor/
 │   ├── modes/                    # Режимы работы
 │   │   ├── user_mode.py          # Пользовательский режим
 │   │   └── admin_mode.py         # Административный режим
-│   └── components/               # Компоненты GUI
-│       ├── user/                 # Пользовательские компоненты
-│       │   ├── main_menu.py
-│       │   ├── topic_study.py
-│       │   ├── test_solver.py
-│       │   └── progress.py
-│       └── admin/                # Административные компоненты
+│   ├── components/               # Компоненты GUI
+│   │   ├── user/                 # Пользовательские компоненты
+│   │   │   ├── main_menu.py
+│   │   │   ├── topic_study.py
+│   │   │   ├── test_solver.py
+│   │   │   └── progress.py
+│   │   └── admin/                # Административные компоненты
+│   ├── styles/                   # Тема оформления (ttkbootstrap)
+│   └── utils/                    # Хелперы GUI (async, логирование)
 │
 ├── utils/                        # Утилиты
 │   ├── __init__.py
@@ -176,6 +173,7 @@ oge-tutor/
 │   ├── chunks/                   # Чанки знаний
 │   ├── metadata/                 # Метаданные
 │   ├── indices/                  # Индексы поиска
+│   ├── backup/                   # Резервные копии
 │   └── tests/                    # Тесты
 │
 ├── logs/                         # Логи
@@ -234,49 +232,6 @@ pytest tests/test_rag_pipeline.py -v
 
 ```
 tests/
-├── test_bot/
-│   ├── test_handlers.py
-│   └── test_keyboards.py
-├── test_api/
-│   ├── test_rag_pipeline.py
-│   ├── test_vector_store.py
-│   └── test_text_search.py
-└── test_utils/
-    ├── test_cache.py
-    └── test_logger.py
-```
-
-### Покрытие тестами
-
-Минимальное требуемое покрытие: 80%
-
-```bash
-# Проверка покрытия
-pytest --cov=. --cov-report=term-missing
-
-# HTML-отчёт
-pytest --cov=. --cov-report=html
-```
-
-## Тестирование
-
-### Запуск тестов
-
-```bash
-# Все тесты
-pytest
-
-# С покрытием
-pytest --cov=. --cov-report=html
-
-# Конкретный файл
-pytest tests/test_rag_pipeline.py -v
-```
-
-### Структура тестов
-
-```
-tests/
 ├── __init__.py
 └── test_rag_pipeline.py    # Тесты RAG-пайплайна
 ```
@@ -297,12 +252,15 @@ pytest --cov=. --cov-report=html
 
 ### Ошибка подключения к Redis
 
-```bash
-# Проверка статуса Redis
-docker-compose ps
+Приложение работает и без Redis (переключается на in-memory кэш), но
+если нужен именно Redis:
 
-# Перезапуск Redis
-docker-compose restart redis
+```bash
+# Проверка запущенных контейнеров
+docker ps --filter "ancestor=redis:7-alpine"
+
+# Перезапуск контейнера с Redis
+docker restart <container_id>
 ```
 
 ### Ошибка загрузки модели

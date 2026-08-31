@@ -87,16 +87,6 @@ class Theme:
         """
         self.style = style
 
-        # Бледные версии success/danger для подсветки вариантов ответа
-        # (сами "success.TButton"/"danger.TButton" уже определены ttkbootstrap)
-        style.configure(
-            "PaleSuccess.TButton", background="#2d5a2d", foreground="#ffffff"
-        )
-
-        style.configure(
-            "PaleDanger.TButton", background="#5a2d2d", foreground="#ffffff"
-        )
-
         # Стили, используемые в коде, но не входящие в стандартный набор
         # ttkbootstrap — строим их поверх акцентного цвета темы (primary),
         # чтобы при переключении тёмная/светлая цвет брался из текущей темы
@@ -110,19 +100,3 @@ class Theme:
         style.configure(
             "Card.TFrame", background=style.colors.bg, relief="raised", borderwidth=1
         )
-
-    def toggle_mode(self) -> str:
-        """
-        Переключение режима темы (тёмная/светлая) во время работы приложения.
-
-        Требует, чтобы apply_custom_styles() уже был вызван — иначе
-        меняется только self.mode/self.colors без визуального эффекта.
-
-        Returns:
-            Новый режим
-        """
-        self.mode = "light" if self.mode == "dark" else "dark"
-        self.colors = self.COLORS[self.mode]
-        if self.style is not None:
-            self.style.theme_use(self.get_style_config()["theme"])
-        return self.mode

@@ -28,6 +28,7 @@ from api.vector_store import VectorStore
 from api.vector_store_existing import ExistingVectorStore
 from utils.advanced_logger import detailed_logger, logger_rag
 from utils.cache import CacheManager
+from utils.hashing import stable_query_hash
 
 logger = logging.getLogger(__name__)
 
@@ -338,7 +339,7 @@ class RAGPipeline:
 
         # Проверка кэша
         if use_cache:
-            cache_key = f"query:{user_id}:{hash(query)}"
+            cache_key = f"query:{user_id}:{stable_query_hash(query)}"
             cached = await self.cache_manager.get(cache_key)
 
             if cached:
@@ -454,7 +455,9 @@ class RAGPipeline:
                 "error": str(e),
             }
 
-    async def _search_chunks(self, query: str) -> List[Dict[str, Any]]:
+    async def _search_chunks(
+        self, query: str, top_k: int = 5, min_score: float = 0.0
+    ) -> List[Dict[str, Any]]:
         """
         Поиск релевантных чанков через Faiss и Whoosh.
 
@@ -462,6 +465,10 @@ class RAGPipeline:
 
         Args:
             query: Поисковый запрос
+            top_k: Сколько чанков запрашивать у каждого источника и
+                максимум в итоговом результате
+            min_score: Минимальный score чанка — менее релевантные
+                отбрасываются (0 — не фильтровать)
 
         Returns:
             List[Dict[str, Any]]: Список релевантных чанков
@@ -474,7 +481,7 @@ class RAGPipeline:
             try:
                 search_start = time.time()
                 existing_results = await self.existing_store.search(
-                    query, top_k=5, use_remote_embedding=True  # ProxyAPI
+                    query, top_k=top_k, use_remote_embedding=True  # ProxyAPI
                 )
                 search_duration = (time.time() - search_start) * 1000
                 results.extend(existing_results)
@@ -506,7 +513,7 @@ class RAGPipeline:
         if not results and self.vector_store:
             try:
                 search_start = time.time()
-                faiss_results = await self.vector_store.search(query, top_k=5)
+                faiss_results = await self.vector_store.search(query, top_k=top_k)
                 search_duration = (time.time() - search_start) * 1000
                 results.extend(faiss_results)
                 logger_rag.info(
@@ -528,7 +535,7 @@ class RAGPipeline:
         if not results and self.text_search:
             try:
                 search_start = time.time()
-                whoosh_results = await self.text_search.search(query, top_k=3)
+                whoosh_results = await self.text_search.search(query, top_k=top_k)
                 search_duration = (time.time() - search_start) * 1000
                 results.extend(whoosh_results)
                 logger_rag.info(
@@ -558,9 +565,14 @@ class RAGPipeline:
         # Сортировка по релевантности
         unique_results.sort(key=lambda x: x.get("score", 0), reverse=True)
 
+        if min_score > 0:
+            unique_results = [
+                r for r in unique_results if r.get("score", 0) >= min_score
+            ]
+
         logger_rag.debug(f"Итого найдено уникальных чанков: {len(unique_results)}")
 
-        return unique_results[:5]
+        return unique_results[:top_k]
 
     def _build_context(self, chunks: List[Dict[str, Any]]) -> str:
         """
@@ -624,7 +636,7 @@ class RAGPipeline:
         # Проверка частотности запроса
         stats = await self.cache_manager.get_query_stats()
 
-        query_hash = hash(query.lower().strip())
+        query_hash = stable_query_hash(query.lower().strip())
 
         if query_hash in stats.get("top_queries", []):
             # Топ-20% запросов - 24 часа

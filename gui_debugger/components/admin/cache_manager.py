@@ -162,7 +162,7 @@ class CacheManager(ttk.Frame):
             return
 
         try:
-            stats = asyncio.run(self.cache_manager.get_stats())
+            stats = asyncio.run(self.cache_manager.get_metrics())
 
             cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(
                 text=str(stats.get("keys_count", 0))
@@ -179,7 +179,7 @@ class CacheManager(ttk.Frame):
 
             # Ключи
             self.keys_listbox.delete(0, tk.END)
-            keys = asyncio.run(self.cache_manager.get_keys())
+            keys = asyncio.run(self.cache_manager.get_cache_keys())
 
             for key in keys[:100]:  # Максимум 100
                 self.keys_listbox.insert(tk.END, key)
@@ -209,7 +209,7 @@ class CacheManager(ttk.Frame):
         ):
             try:
                 if self.cache_manager:
-                    asyncio.run(self.cache_manager.clear())
+                    asyncio.run(self.cache_manager.clear_cache())
                 else:
                     messagebox.showinfo("Демо режим", "Кэш очищен (демо)")
 
@@ -232,18 +232,28 @@ class CacheManager(ttk.Frame):
 
         def do_clear():
             topic = topic_var.get().strip()
-            if topic:
-                # Очистка ключей по теме
-                count = 0
-                for i in range(self.keys_listbox.size()):
-                    key = self.keys_listbox.get(i)
-                    if topic.lower() in key.lower():
-                        count += 1
+            if not topic:
+                return
 
-                messagebox.showinfo(
-                    "Очистка", f"Найдено {count} ключей по теме '{topic}'"
-                )
-                dialog.destroy()
+            matching_keys = [
+                self.keys_listbox.get(i)
+                for i in range(self.keys_listbox.size())
+                if topic.lower() in self.keys_listbox.get(i).lower()
+            ]
+
+            if self.cache_manager and matching_keys:
+
+                async def _delete_all() -> None:
+                    for key in matching_keys:
+                        await self.cache_manager.delete(key)
+
+                asyncio.run(_delete_all())
+
+            messagebox.showinfo(
+                "Очистка", f"Удалено {len(matching_keys)} ключей по теме '{topic}'"
+            )
+            dialog.destroy()
+            self._refresh_stats()
 
         ttk.Button(dialog, text="Очистить", command=do_clear).pack(pady=10)
 

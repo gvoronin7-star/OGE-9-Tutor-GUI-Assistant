@@ -85,12 +85,12 @@ def is_excluded(path: Path) -> bool:
     return False
 
 
-def scan_file(filepath: Path) -> List[Tuple[str, str, str]]:
+def scan_file(filepath: Path) -> List[Tuple[str, str, str, str]]:
     """
     Сканирование файла на наличие секретов.
 
     Returns:
-        List[Tuple[str, str, str]]: (pattern_name, line_number, line_content)
+        List[Tuple[str, str, str, str]]: (pattern_name, severity, location, line_content)
     """
     findings = []
 
@@ -120,6 +120,7 @@ def scan_file(filepath: Path) -> List[Tuple[str, str, str]]:
                     findings.append(
                         (
                             pattern_info["name"],
+                            pattern_info["severity"],
                             f"{filepath}:{line_num}",
                             line.strip()[:80],
                         )
@@ -131,12 +132,12 @@ def scan_file(filepath: Path) -> List[Tuple[str, str, str]]:
     return findings
 
 
-def scan_directory(root_dir: Path) -> List[Tuple[Path, str, str, str]]:
+def scan_directory(root_dir: Path) -> List[Tuple[Path, str, str, str, str]]:
     """
     Сканирование директории.
 
     Returns:
-        List[Tuple[Path, str, str, str]]: (filepath, pattern_name, location, content)
+        List[Tuple[Path, str, str, str, str]]: (filepath, pattern_name, severity, location, content)
     """
     all_findings = []
 
@@ -154,7 +155,7 @@ def scan_directory(root_dir: Path) -> List[Tuple[Path, str, str, str]]:
     return all_findings
 
 
-def print_report(findings: List[Tuple[Path, str, str, str]]) -> None:
+def print_report(findings: List[Tuple[Path, str, str, str, str]]) -> None:
     """Вывод отчёта."""
     print("=" * 70)
     print("ОТЧЁТ ПРОВЕРКИ НА УТЕЧКИ СЕКРЕТОВ")
@@ -167,9 +168,9 @@ def print_report(findings: List[Tuple[Path, str, str, str]]) -> None:
         return
 
     # Группировка по критичности
-    critical = [f for f in findings if "CRITICAL" in str(f)]
-    high = [f for f in findings if "HIGH" in str(f) and f not in critical]
-    other = [f for f in findings if f not in critical and f not in high]
+    critical = [f for f in findings if f[2] == "CRITICAL"]
+    high = [f for f in findings if f[2] == "HIGH"]
+    other = [f for f in findings if f[2] not in ("CRITICAL", "HIGH")]
 
     print(f"Найдено утечек: {len(findings)}")
     print(f"  - CRITICAL: {len(critical)}")
@@ -181,7 +182,7 @@ def print_report(findings: List[Tuple[Path, str, str, str]]) -> None:
         print("-" * 70)
         print("CRITICAL УТЕЧКИ (требуют немедленного устранения):")
         print("-" * 70)
-        for filepath, name, location, content in critical:
+        for filepath, name, severity, location, content in critical:
             print(f"\n[{name}]")
             print(f"  Файл: {location}")
             print(f"  Содержимое: {content}")
@@ -190,7 +191,7 @@ def print_report(findings: List[Tuple[Path, str, str, str]]) -> None:
         print("\n" + "-" * 70)
         print("HIGH УТЕЧКИ (рекомендуется устранить):")
         print("-" * 70)
-        for filepath, name, location, content in high:
+        for filepath, name, severity, location, content in high:
             print(f"\n[{name}]")
             print(f"  Файл: {location}")
             print(f"  Содержимое: {content}")
@@ -199,7 +200,7 @@ def print_report(findings: List[Tuple[Path, str, str, str]]) -> None:
         print("\n" + "-" * 70)
         print("OTHER (проверить вручную):")
         print("-" * 70)
-        for filepath, name, location, content in other:
+        for filepath, name, severity, location, content in other:
             print(f"\n[{name}]")
             print(f"  Файл: {location}")
             print(f"  Содержимое: {content}")
@@ -227,7 +228,7 @@ def main() -> int:
     print_report(findings)
 
     # Возвращаем код ошибки если найдены CRITICAL
-    critical_count = sum(1 for f in findings if "CRITICAL" in str(f))
+    critical_count = sum(1 for f in findings if f[2] == "CRITICAL")
 
     if critical_count > 0:
         print(f"[FAIL] Найдено {critical_count} CRITICAL утечек!")

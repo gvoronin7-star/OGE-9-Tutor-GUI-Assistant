@@ -374,6 +374,13 @@ class DetailedRequestLogger:
 
         # Логирование ошибок
         if status == "error" and error_message:
+            # log_request(status="error", ...) вызывается изнутри активного
+            # except-блока — sys.exc_info() даёт реальный класс исключения,
+            # а не type(error_message) (всегда str, т.к. вызывающие передают
+            # уже сформированную строку через str(e))
+            exc_type = sys.exc_info()[0]
+            error_type_name = exc_type.__name__ if exc_type else "Unknown"
+
             with open(self.errors_file, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 writer.writerow(
@@ -381,7 +388,7 @@ class DetailedRequestLogger:
                         timestamp,
                         request_id,
                         component,
-                        type(error_message).__name__,
+                        error_type_name,
                         error_message,
                         traceback.format_exc()[:1000],
                     ]

@@ -94,6 +94,11 @@ class LogViewer(ttk.Frame):
             side=tk.LEFT, padx=5
         )
 
+        self.auto_refresh_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            top_frame, text="Автообновление (5с)", variable=self.auto_refresh_var
+        ).pack(side=tk.LEFT, padx=10)
+
         # Статистика
         self.stats_label = ttk.Label(top_frame, text="", foreground="#808080")
         self.stats_label.pack(side=tk.RIGHT, padx=10)
@@ -158,8 +163,6 @@ class LogViewer(ttk.Frame):
         # Привязка выбора
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
 
-        # Автообновление
-        self.auto_refresh_var = tk.BooleanVar(value=False)
         self._start_auto_refresh()
 
     def _on_log_type_changed(self) -> None:

@@ -12,10 +12,10 @@
 |-----------|------------|
 | GUI | Tkinter + ttkbootstrap |
 | Backend | FastAPI 0.109.0 |
-| Vector Search | Faiss 1.7.4 |
+| Vector Search | Faiss 1.13.2 |
 | Text Search | Whoosh 2.7.4 |
 | LLM | GPT-4o-mini (via ProxyAPI) |
-| Embeddings | sentence-transformers 2.3.1 |
+| Embeddings | OpenAI `text-embedding-3-small` (основная база ФИПИ) / sentence-transformers 2.3.1 (локальный fallback) |
 
 ---
 
