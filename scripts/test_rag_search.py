@@ -258,7 +258,7 @@ async def main():
         print("[SUCCESS] ВСЕ ТЕСТЫ ПРОЙДЕНЫ!")
         print()
         print("RAG_data_base готова к использованию:")
-        print("  ✓ 204 чанка ФИПИ загружены")
+        print("  ✓ 197 чанков ФИПИ загружены")
         print("  ✓ ProxyAPI работает")
         print("  ✓ Поиск функционирует")
         print("  ✓ Fallback режимы работают")

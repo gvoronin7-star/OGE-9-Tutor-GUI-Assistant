@@ -88,7 +88,7 @@ cp .env.example .env
 
 | Переменная | Описание | Пример |
 |------------|----------|--------|
-| `USE_EXISTING_INDEX` | Включить `ExistingVectorStore` (204 чанка ФИПИ) вместо пустого локального индекса | `true` |
+| `USE_EXISTING_INDEX` | Включить `ExistingVectorStore` (197 чанков ФИПИ) вместо пустого локального индекса | `true` |
 | `OPENAI_API_KEY` | Ключ для эмбеддингов `text-embedding-3-small` на пути `USE_EXISTING_INDEX=true` (falls back на `PROXY_API_KEY`, если не задан) | `sk-...` |
 | `OPENAI_BASE_URL` | Базовый URL для запроса эмбеддингов | `https://api.proxyapi.ru/openai/v1` |
 

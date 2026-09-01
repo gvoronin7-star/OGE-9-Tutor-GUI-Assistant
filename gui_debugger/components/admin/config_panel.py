@@ -128,7 +128,7 @@ class ConfigPanel(ttk.Frame):
         # Информация
         info_label = ttk.Label(
             tab,
-            text="RAG_data_base: 204 чанка FIPI\nLocal Faiss: HNSW индекс (768-dim)\nWhoosh: полнотекстовый поиск",
+            text="RAG_data_base: 197 чанков FIPI\nLocal Faiss: HNSW индекс (768-dim)\nWhoosh: полнотекстовый поиск",
             font=("Segoe UI", 9),
             foreground="#808080",
         )

@@ -78,7 +78,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
         # Вывод статуса RAG_data_base
         if rag_pipeline.use_existing:
-            logger.info("✓ RAG_data_base активна (204 чанка ФИПИ)")
+            logger.info("✓ RAG_data_base активна (197 чанков ФИПИ)")
         else:
             logger.info("⚠ RAG_data_base не активна, используется локальный индекс")
 
