@@ -91,6 +91,14 @@ class AsyncHelper:
         future = asyncio.run_coroutine_threadsafe(coro, loop)
 
         def _poll() -> None:
+            # Виджет мог быть уничтожен (пользователь ушёл с экрана) пока
+            # корутина ещё выполнялась — не планируем следующий опрос и не
+            # вызываем on_success/on_error, иначе получим
+            # _tkinter.TclError: invalid command name на уничтоженных
+            # дочерних виджетах.
+            if not widget.winfo_exists():
+                return
+
             if not future.done():
                 widget.after(poll_interval_ms, _poll)
                 return

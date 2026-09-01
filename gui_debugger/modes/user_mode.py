@@ -64,6 +64,20 @@ class UserMode(ttk.Frame):
         self.container = ttk.Frame(self)
         self.container.pack(fill=tk.BOTH, expand=True)
 
+    def cleanup(self) -> None:
+        """
+        Отмена отложенных задач активной панели.
+
+        Вызывается извне (`app.py`'s `_destroy_current_mode()`) при
+        переходе на верхнеуровневый экран выбора режима — тот же риск,
+        что и в `_clear_container()` ниже, но при выходе из режима
+        целиком, а не при переключении панелей внутри него.
+        """
+        if self.current_panel:
+            cleanup = getattr(self.current_panel, "cleanup", None)
+            if callable(cleanup):
+                cleanup()
+
     def _clear_container(self) -> None:
         """Очистка контейнера."""
         if self.current_panel:

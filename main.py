@@ -56,7 +56,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         cache_manager: Any = CacheManager()
         await cache_manager.initialize()
 
-        if await cache_manager.ping():
+        # initialize() уже сходил в Redis (ping внутри) и выставил
+        # _initialized — второй ping() здесь был бы лишним round-trip'ом
+        # с тем же 5с socket-таймаутом при недоступном Redis
+        if cache_manager._initialized:
             logger.info("Кэш-менеджер инициализирован")
         else:
             logger.warning("Redis недоступен, используем in-memory кэш")

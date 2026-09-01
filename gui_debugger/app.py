@@ -89,8 +89,30 @@ class OGEDebuggerApp:
         # Применение кастомных стилей поверх темы ttkbootstrap
         self.theme.apply_custom_styles(self.root.style)
 
+    def _destroy_current_mode(self) -> None:
+        """
+        Уничтожает текущий активный режим, если он есть.
+
+        Вызывает его cleanup() (если определён — например, чтобы
+        отменить отложенные after()-задачи активной панели), иначе при
+        переходе через кнопку «🏠 К выбору режима» (`on_back_to_selector`
+        вызывает `_show_mode_selector()` напрямую, минуя `_show_mode()`)
+        старый режим оставался бы живым и скрытым под новым экраном, а
+        его таймеры продолжали бы тикать в фоне до следующего
+        переключения режима.
+        """
+        if hasattr(self, "current_mode"):
+            cleanup = getattr(self.current_mode, "cleanup", None)
+            if callable(cleanup):
+                cleanup()
+            self.current_mode.grid_forget()
+            self.current_mode.destroy()
+            del self.current_mode
+
     def _show_mode_selector(self) -> None:
         """Показ экрана выбора режима."""
+        self._destroy_current_mode()
+
         self.mode_selector = ModeSelector(
             self.root,
             on_user_mode=lambda: self._show_mode("user"),
@@ -110,9 +132,7 @@ class OGEDebuggerApp:
             self.mode_selector.grid_forget()
             self.mode_selector.destroy()
 
-        if hasattr(self, "current_mode"):
-            self.current_mode.grid_forget()
-            self.current_mode.destroy()
+        self._destroy_current_mode()
 
         # Создание режима с кнопкой возврата
         if mode == "user":

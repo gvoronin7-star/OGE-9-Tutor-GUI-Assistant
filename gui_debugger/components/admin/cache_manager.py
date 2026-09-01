@@ -5,7 +5,6 @@
 Просмотр и управление кэшем Redis/InMemory.
 """
 
-import asyncio
 import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import Any, Dict, List, Optional, cast
@@ -161,8 +160,15 @@ class CacheManager(ttk.Frame):
 
             return
 
-        try:
-            stats = asyncio.run(self.cache_manager.get_metrics())
+        from gui_debugger.utils.async_helper import async_helper
+
+        async def _fetch() -> tuple:
+            stats = await self.cache_manager.get_metrics()
+            keys = await self.cache_manager.get_cache_keys()
+            return stats, keys
+
+        def on_success(result: tuple) -> None:
+            stats, keys = result
 
             cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(
                 text=str(stats.get("keys_count", 0))
@@ -177,17 +183,16 @@ class CacheManager(ttk.Frame):
                 text=str(stats.get("connected_clients", 0))
             )
 
-            # Ключи
             self.keys_listbox.delete(0, tk.END)
-            keys = asyncio.run(self.cache_manager.get_cache_keys())
-
             for key in keys[:100]:  # Максимум 100
                 self.keys_listbox.insert(tk.END, key)
 
-        except Exception as e:
+        def on_error(e: BaseException) -> None:
             cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(
                 text=f"Ошибка: {str(e)}"
             )
+
+        async_helper.run_async_in_background(self, _fetch(), on_success, on_error)
 
     def _on_key_select(self, event: tk.Event) -> None:
         """Выбор ключа."""
@@ -204,19 +209,27 @@ class CacheManager(ttk.Frame):
 
     def _clear_all(self) -> None:
         """Очистка всего кэша."""
-        if messagebox.askyesno(
+        if not messagebox.askyesno(
             "Очистка кэша", "Вы уверены? Это удалит все закэшированные ответы."
         ):
-            try:
-                if self.cache_manager:
-                    asyncio.run(self.cache_manager.clear_cache())
-                else:
-                    messagebox.showinfo("Демо режим", "Кэш очищен (демо)")
+            return
 
-                self._refresh_stats()
+        if not self.cache_manager:
+            messagebox.showinfo("Демо режим", "Кэш очищен (демо)")
+            self._refresh_stats()
+            return
 
-            except Exception as e:
-                messagebox.showerror("Ошибка", f"Ошибка очистки: {str(e)}")
+        from gui_debugger.utils.async_helper import async_helper
+
+        def on_success(_result: Any) -> None:
+            self._refresh_stats()
+
+        def on_error(e: BaseException) -> None:
+            messagebox.showerror("Ошибка", f"Ошибка очистки: {str(e)}")
+
+        async_helper.run_async_in_background(
+            self, self.cache_manager.clear_cache(), on_success, on_error
+        )
 
     def _clear_by_topic(self) -> None:
         """Очистка по теме."""
@@ -241,19 +254,33 @@ class CacheManager(ttk.Frame):
                 if topic.lower() in self.keys_listbox.get(i).lower()
             ]
 
-            if self.cache_manager and matching_keys:
+            def finish() -> None:
+                messagebox.showinfo(
+                    "Очистка",
+                    f"Удалено {len(matching_keys)} ключей по теме '{topic}'",
+                )
+                dialog.destroy()
+                self._refresh_stats()
 
-                async def _delete_all() -> None:
-                    for key in matching_keys:
-                        await self.cache_manager.delete(key)
+            if not (self.cache_manager and matching_keys):
+                finish()
+                return
 
-                asyncio.run(_delete_all())
+            from gui_debugger.utils.async_helper import async_helper
 
-            messagebox.showinfo(
-                "Очистка", f"Удалено {len(matching_keys)} ключей по теме '{topic}'"
+            async def _delete_all() -> None:
+                for key in matching_keys:
+                    await self.cache_manager.delete(key)
+
+            def on_success(_result: Any) -> None:
+                finish()
+
+            def on_error(e: BaseException) -> None:
+                messagebox.showerror("Ошибка", f"Ошибка очистки: {str(e)}")
+
+            async_helper.run_async_in_background(
+                dialog, _delete_all(), on_success, on_error
             )
-            dialog.destroy()
-            self._refresh_stats()
 
         ttk.Button(dialog, text="Очистить", command=do_clear).pack(pady=10)
 
