@@ -11,6 +11,9 @@ downloads/
 eggs/
 .eggs/
 lib/
+# lib/ above targets Python venv layouts (venv/lib/...) but, being
+# unanchored, also matches mobile/lib/ - the actual Flutter app source.
+!mobile/lib/
 lib64/
 parts/
 sdist/
