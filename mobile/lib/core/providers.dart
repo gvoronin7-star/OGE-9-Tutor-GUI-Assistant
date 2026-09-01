@@ -2,9 +2,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/assets/content_repository.dart';
 import '../data/local_db/database.dart';
+import '../data/remote/api_client.dart';
 import 'models.dart';
+import 'settings_repository.dart';
 
 final contentRepositoryProvider = Provider((ref) => const ContentRepository());
+
+final settingsRepositoryProvider = Provider((ref) => SettingsRepository());
+
+/// Seeded from persisted storage via ProviderScope overrides in main().
+final serverUrlProvider = StateProvider<String>(
+  (ref) => SettingsRepository.defaultServerUrl,
+);
+
+/// Seeded from persisted storage via ProviderScope overrides in main().
+final serverModeEnabledProvider = StateProvider<bool>((ref) => false);
+
+final apiClientProvider = Provider<ApiClient>((ref) {
+  return ApiClient(ref.watch(serverUrlProvider));
+});
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();

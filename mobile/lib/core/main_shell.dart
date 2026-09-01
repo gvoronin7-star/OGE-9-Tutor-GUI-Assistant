@@ -6,7 +6,7 @@ class MainShell extends StatelessWidget {
 
   const MainShell({super.key, required this.child});
 
-  static const _tabs = ['/topics', '/tests', '/progress', '/help'];
+  static const _tabs = ['/topics', '/tests', '/progress', '/settings', '/help'];
 
   int _indexForLocation(String location) {
     final index = _tabs.indexWhere((tab) => location.startsWith(tab));
@@ -35,6 +35,10 @@ class MainShell extends StatelessWidget {
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
             label: 'Прогресс',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            label: 'Настройки',
           ),
           NavigationDestination(
             icon: Icon(Icons.help_outline),

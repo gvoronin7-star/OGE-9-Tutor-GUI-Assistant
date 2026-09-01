@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/models.dart';
 import '../../core/providers.dart';
 
 class TestTakingScreen extends ConsumerStatefulWidget {
@@ -24,12 +25,71 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
   Timer? _ticker;
   Duration _elapsed = Duration.zero;
 
+  List<Question>? _questions;
+  String? _loadError;
+
   @override
   void initState() {
     super.initState();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _elapsed = _stopwatch.elapsed);
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadQuestions());
+  }
+
+  Future<void> _loadQuestions() async {
+    final topics = await ref.read(topicsProvider.future);
+    final topic = topics.firstWhere((t) => t.id == widget.topicId);
+
+    if (ref.read(serverModeEnabledProvider)) {
+      try {
+        final testData = await ref
+            .read(apiClientProvider)
+            .generateTest(topic.title);
+        final questions = _parseServerQuestions(
+          testData,
+          topic.id,
+          topic.title,
+        );
+        if (!mounted) return;
+        setState(() => _questions = questions);
+        return;
+      } catch (_) {
+        if (!mounted) return;
+        setState(
+          () => _loadError =
+              'Сервер недоступен - используется локальный банк вопросов.',
+        );
+      }
+    }
+
+    final local = await ref.read(
+      questionsByTopicProvider(widget.topicId).future,
+    );
+    if (!mounted) return;
+    setState(() => _questions = local);
+  }
+
+  List<Question> _parseServerQuestions(
+    Map<String, dynamic> testData,
+    String topicId,
+    String topicTitle,
+  ) {
+    final questionsMap = testData['questions'] as Map<String, dynamic>? ?? {};
+    return questionsMap.values
+        .map((raw) {
+          final q = raw as Map<String, dynamic>;
+          return Question(
+            topicId: topicId,
+            topicTitle: topicTitle,
+            type: q['type'] as String? ?? 'server',
+            question: q['question'] as String,
+            answers: (q['answers'] as List).cast<String>(),
+            correctAnswer: q['correct_answer'] as int,
+            explanation: q['explanation'] as String? ?? '',
+          );
+        })
+        .toList(growable: false);
   }
 
   @override
@@ -47,105 +107,108 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final questionsAsync = ref.watch(questionsByTopicProvider(widget.topicId));
+    final questions = _questions;
+    if (questions == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (questions.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text('Для этой темы пока нет вопросов')),
+      );
+    }
 
-    return questionsAsync.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (err, _) => Scaffold(body: Center(child: Text('Ошибка: $err'))),
-      data: (questions) {
-        if (questions.isEmpty) {
-          return const Scaffold(
-            body: Center(child: Text('Для этой темы пока нет вопросов')),
-          );
-        }
+    final question = questions[_currentIndex];
+    final topicTitle = question.topicTitle;
 
-        final question = questions[_currentIndex];
-        final topicTitle = question.topicTitle;
-
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(topicTitle),
-            actions: [
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(topicTitle),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Center(child: Text(_formatElapsed())),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (_loadError != null)
               Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Center(child: Text(_formatElapsed())),
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _loadError!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            LinearProgressIndicator(
+              value: (_currentIndex + 1) / questions.length,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Вопрос ${_currentIndex + 1} из ${questions.length}',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              question.question,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(question.answers.length, (i) {
+              final isCorrect = i == question.correctAnswer;
+              final isSelected = i == _selectedAnswer;
+              Color? tileColor;
+              if (_answered) {
+                if (isCorrect) {
+                  tileColor = Colors.green.withValues(alpha: 0.2);
+                } else if (isSelected) {
+                  tileColor = Colors.red.withValues(alpha: 0.2);
+                }
+              }
+              return Card(
+                color: tileColor,
+                child: ListTile(
+                  title: Text(question.answers[i]),
+                  onTap: _answered
+                      ? null
+                      : () {
+                          setState(() {
+                            _selectedAnswer = i;
+                            _answered = true;
+                            if (isCorrect) _score++;
+                          });
+                        },
+                ),
+              );
+            }),
+            if (_answered && question.explanation.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                question.explanation,
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
-          ),
-          body: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                LinearProgressIndicator(
-                  value: (_currentIndex + 1) / questions.length,
+            const Spacer(),
+            if (_answered)
+              FilledButton(
+                onPressed: () => _goToNext(questions, topicTitle),
+                child: Text(
+                  _currentIndex + 1 < questions.length
+                      ? 'Следующий вопрос'
+                      : 'Завершить тест',
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Вопрос ${_currentIndex + 1} из ${questions.length}',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  question.question,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                ...List.generate(question.answers.length, (i) {
-                  final isCorrect = i == question.correctAnswer;
-                  final isSelected = i == _selectedAnswer;
-                  Color? tileColor;
-                  if (_answered) {
-                    if (isCorrect) {
-                      tileColor = Colors.green.withValues(alpha: 0.2);
-                    } else if (isSelected) {
-                      tileColor = Colors.red.withValues(alpha: 0.2);
-                    }
-                  }
-                  return Card(
-                    color: tileColor,
-                    child: ListTile(
-                      title: Text(question.answers[i]),
-                      onTap: _answered
-                          ? null
-                          : () {
-                              setState(() {
-                                _selectedAnswer = i;
-                                _answered = true;
-                                if (isCorrect) _score++;
-                              });
-                            },
-                    ),
-                  );
-                }),
-                if (_answered) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    question.explanation,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-                const Spacer(),
-                if (_answered)
-                  FilledButton(
-                    onPressed: () => _goToNext(questions.length, topicTitle),
-                    child: Text(
-                      _currentIndex + 1 < questions.length
-                          ? 'Следующий вопрос'
-                          : 'Завершить тест',
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
-  Future<void> _goToNext(int totalQuestions, String topicTitle) async {
-    if (_currentIndex + 1 < totalQuestions) {
+  Future<void> _goToNext(List<Question> questions, String topicTitle) async {
+    if (_currentIndex + 1 < questions.length) {
       setState(() {
         _currentIndex++;
         _selectedAnswer = null;
@@ -160,7 +223,7 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
           topicId: widget.topicId,
           topicTitle: topicTitle,
           score: _score,
-          total: totalQuestions,
+          total: questions.length,
         );
     ref.read(progressRevisionProvider.notifier).state++;
 
@@ -169,7 +232,7 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
       '/tests/${widget.topicId}/result',
       extra: {
         'score': _score,
-        'total': totalQuestions,
+        'total': questions.length,
         'topicTitle': topicTitle,
       },
     );

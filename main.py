@@ -20,7 +20,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from api.mobile_routes import router as mobile_router
 from api.rag_pipeline import RAGPipeline
+from api.test_generator import TestGenerator
 from utils.cache import CacheManager
 from utils.logger import setup_logging
 
@@ -76,6 +78,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await rag_pipeline.initialize()
         app.state.rag_pipeline = rag_pipeline
 
+        # Генератор тестов для мобильного /api/tests/generate - та же
+        # логика, что вызывает десктопная GUI in-process.
+        app.state.test_generator = TestGenerator(rag_pipeline)
+
         # Вывод статуса RAG_data_base
         if rag_pipeline.use_existing:
             logger.info("✓ RAG_data_base активна (197 чанков ФИПИ)")
@@ -108,6 +114,8 @@ app = FastAPI(
     version="2.3.0",
     lifespan=lifespan,
 )
+
+app.include_router(mobile_router)
 
 
 @app.get("/")

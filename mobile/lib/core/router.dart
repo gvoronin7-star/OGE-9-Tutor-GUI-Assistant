@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/help/help_screen.dart';
 import '../features/progress/progress_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/tests/test_result_screen.dart';
 import '../features/tests/test_taking_screen.dart';
 import '../features/tests/tests_list_screen.dart';
@@ -53,6 +54,10 @@ final router = GoRouter(
         GoRoute(
           path: '/progress',
           builder: (context, state) => const ProgressScreen(),
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
         ),
         GoRoute(path: '/help', builder: (context, state) => const HelpScreen()),
       ],
