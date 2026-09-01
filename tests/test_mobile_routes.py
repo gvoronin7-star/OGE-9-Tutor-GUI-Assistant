@@ -25,8 +25,13 @@ def app_with_stubs():
     app.include_router(router)
     app.state.rag_pipeline = AsyncMock()
     app.state.rag_pipeline.get_answer.return_value = {
+        # RAGPipeline.get_answer() возвращает sources как список названий
+        # тем (str) - api/rag_pipeline.py: [c["topic"] for c in
+        # relevant_chunks[:3]] - не список словарей, как этот мок изначально
+        # предполагал (маскировало реальный баг схемы до первого запроса
+        # с настоящего устройства).
         "answer": "Общество - это совокупность людей.",
-        "sources": [{"chunk_id": 1}],
+        "sources": ["человек и общество"],
     }
     app.state.test_generator = AsyncMock()
     app.state.test_generator.generate_test.return_value = {
@@ -58,7 +63,7 @@ class TestAsk:
         assert response.status_code == 200
         body = response.json()
         assert body["answer"] == "Общество - это совокупность людей."
-        assert body["sources"] == [{"chunk_id": 1}]
+        assert body["sources"] == ["человек и общество"]
         app_with_stubs.state.rag_pipeline.get_answer.assert_awaited_once_with(
             "Что такое общество?", 0
         )
@@ -85,7 +90,5 @@ class TestGenerateTest:
         assert body["total_questions"] == 1
 
     def test_400_for_unknown_topic(self, client):
-        response = client.post(
-            "/api/tests/generate", json={"topic": "Астрология"}
-        )
+        response = client.post("/api/tests/generate", json={"topic": "Астрология"})
         assert response.status_code == 400

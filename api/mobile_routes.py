@@ -35,7 +35,13 @@ class AskRequest(BaseModel):
 
 class AskResponse(BaseModel):
     answer: str
-    sources: List[Dict[str, Any]] = Field(default_factory=list)
+    # RAGPipeline.get_answer() возвращает sources как список названий
+    # тем (str), не словарей - см. api/rag_pipeline.py: "sources": [c["topic"]
+    # for c in relevant_chunks[:3]]. Изначально было List[Dict[str, Any]] -
+    # ошибка, не сверенная с реальной формой ответа, всплыла только при
+    # первом реальном запросе с телефона (raw response.get("sources") никогда
+    # не вызывался с реальными данными до этого).
+    sources: List[str] = Field(default_factory=list)
 
 
 class GenerateTestRequest(BaseModel):
@@ -67,11 +73,15 @@ async def generate_test(
 ) -> Dict[str, Any]:
     """Генерация теста по теме — тот же путь, что TestGenerator.generate_test()."""
     if payload.topic not in TOPICS:
-        raise HTTPException(status_code=400, detail=f"Неизвестная тема: {payload.topic}")
+        raise HTTPException(
+            status_code=400, detail=f"Неизвестная тема: {payload.topic}"
+        )
 
     test_generator = getattr(request.app.state, "test_generator", None)
     if test_generator is None:
-        raise HTTPException(status_code=503, detail="Генератор тестов не инициализирован")
+        raise HTTPException(
+            status_code=503, detail="Генератор тестов не инициализирован"
+        )
 
     return await test_generator.generate_test(
         topic=payload.topic,
