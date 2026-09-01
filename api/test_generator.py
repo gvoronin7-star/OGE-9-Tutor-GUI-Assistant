@@ -127,21 +127,20 @@ class TestGenerator:
 
         return test_data
 
-    def _generate_demo_questions(
-        self, topic: str, difficulty: str, num_questions: int
-    ) -> Dict[str, Any]:
+    def _demo_questions_db(self) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Генерация демо-вопросов без LLM.
+        Общая база демо-вопросов по всем темам, без LLM.
 
-        Args:
-            topic: Название темы
-            difficulty: Сложность
-            num_questions: Количество вопросов
+        Единственный источник демо-контента для генератора тестов —
+        используется и точечной генерацией по одной теме
+        (`_generate_demo_questions`), и подбором вопросов сразу по
+        всем темам (`_get_demo_questions_by_topic`), чтобы не
+        поддерживать два независимых каталога с разным набором
+        вопросов по одним и тем же темам.
 
         Returns:
-            Dict[str, Any]: Словарь вопросов
+            Dict[str, List[Dict[str, Any]]]: Вопросы по темам
         """
-        # База демо-вопросов по темам
         demo_questions_db = {
             "человек и общество": [
                 {
@@ -516,6 +515,23 @@ class TestGenerator:
                 },
             ],
         }
+        return demo_questions_db
+
+    def _generate_demo_questions(
+        self, topic: str, difficulty: str, num_questions: int
+    ) -> Dict[str, Any]:
+        """
+        Генерация демо-вопросов по одной теме без LLM.
+
+        Args:
+            topic: Название темы
+            difficulty: Сложность
+            num_questions: Количество вопросов
+
+        Returns:
+            Dict[str, Any]: Словарь вопросов
+        """
+        demo_questions_db = self._demo_questions_db()
 
         # Выбор вопросов по теме
         topic_lower = topic.lower()
@@ -672,151 +688,29 @@ class TestGenerator:
         """
         Получение демо-вопросов по всем темам.
 
+        Использует ту же базу, что и `_generate_demo_questions`
+        (`_demo_questions_db`), вместо отдельного каталога с урезанным
+        набором вопросов по тем же темам.
+
         Returns:
             List[tuple]: Список кортежей (вопрос, тема)
         """
-        demo_questions = {
-            "человек и общество": [
-                {
-                    "question": "Что такое общество?",
-                    "answers": [
-                        "Совокупность людей",
-                        "Группа животных",
-                        "Компьютерная сеть",
-                        "Государство",
-                    ],
-                    "correct_answer": 0,
-                    "explanation": "Общество — это совокупность людей с общими интересами.",
-                    "difficulty": "easy",
-                },
-                {
-                    "question": "Что такое социализация?",
-                    "answers": ["Усвоение норм", "Обучение в школе", "Работа", "Отдых"],
-                    "correct_answer": 0,
-                    "explanation": "Социализация — усвоение социальных норм и ценностей.",
-                    "difficulty": "easy",
-                },
-            ],
-            "экономика": [
-                {
-                    "question": "Что изучает экономика?",
-                    "answers": [
-                        "Производство товаров",
-                        "Природу",
-                        "Историю",
-                        "Психологию",
-                    ],
-                    "correct_answer": 0,
-                    "explanation": "Экономика изучает производство и потребление.",
-                    "difficulty": "easy",
-                },
-                {
-                    "question": "Что такое инфляция?",
-                    "answers": [
-                        "Рост цен",
-                        "Падение цен",
-                        "Увеличение производства",
-                        "Снижение безработицы",
-                    ],
-                    "correct_answer": 0,
-                    "explanation": "Инфляция — это рост общего уровня цен.",
-                    "difficulty": "medium",
-                },
-            ],
-            "право": [
-                {
-                    "question": "Какой закон главный в России?",
-                    "answers": [
-                        "Конституция",
-                        "Гражданский кодекс",
-                        "Уголовный кодекс",
-                        "ФЗ",
-                    ],
-                    "correct_answer": 0,
-                    "explanation": "Конституция РФ — главный закон страны.",
-                    "difficulty": "easy",
-                },
-                {
-                    "question": "Какой возраст совершеннолетия в РФ?",
-                    "answers": ["18 лет", "16 лет", "21 год", "14 лет"],
-                    "correct_answer": 0,
-                    "explanation": "Совершеннолетие наступает в 18 лет.",
-                    "difficulty": "easy",
-                },
-            ],
-            "политика": [
-                {
-                    "question": "Какая власть исполнительная?",
-                    "answers": ["Правительство", "Госдума", "Суд", "Президент"],
-                    "correct_answer": 0,
-                    "explanation": "Правительство — орган исполнительной власти.",
-                    "difficulty": "medium",
-                },
-                {
-                    "question": "Что такое демократия?",
-                    "answers": [
-                        "Народовластие",
-                        "Правление элиты",
-                        "Монархия",
-                        "Диктатура",
-                    ],
-                    "correct_answer": 0,
-                    "explanation": "Демократия — это народовластие.",
-                    "difficulty": "easy",
-                },
-            ],
-            "социальная сфера": [
-                {
-                    "question": "Что такое социальная стратификация?",
-                    "answers": [
-                        "Разделение на слои",
-                        "Равенство всех",
-                        "Отсутствие различий",
-                        "Одинаковый доход",
-                    ],
-                    "correct_answer": 0,
-                    "explanation": "Стратификация — неравенство и деление на слои.",
-                    "difficulty": "medium",
-                },
-                {
-                    "question": "Что такое семья?",
-                    "answers": ["Союз людей", "Компания", "Государство", "Школа"],
-                    "correct_answer": 0,
-                    "explanation": "Семья — основанный на браке или кровном родстве союз.",
-                    "difficulty": "easy",
-                },
-            ],
-            "сфера духовной культуры": [
-                {
-                    "question": "Что такое культура?",
-                    "answers": [
-                        "Духовные и материальные ценности",
-                        "Только искусство",
-                        "Только наука",
-                        "Только религия",
-                    ],
-                    "correct_answer": 0,
-                    "explanation": "Культура включает духовные и материальные ценности.",
-                    "difficulty": "medium",
-                },
-                {
-                    "question": "Что такое мораль?",
-                    "answers": [
-                        "Нормы поведения",
-                        "Законы государства",
-                        "Правила игры",
-                        "Технические стандарты",
-                    ],
-                    "correct_answer": 0,
-                    "explanation": "Мораль — нормы поведения в обществе.",
-                    "difficulty": "easy",
-                },
-            ],
+        # Классификация типа вопроса в сложность — зеркалит
+        # question_types внутри difficulty_params.
+        type_to_difficulty = {
+            "fact": "easy",
+            "definition": "easy",
+            "understanding": "medium",
+            "application": "medium",
+            "analysis": "hard",
+            "evaluation": "hard",
         }
 
         result = []
-        for topic, questions in demo_questions.items():
+        for topic, questions in self._demo_questions_db().items():
             for q in questions:
-                result.append((q, topic))
+                q_type = q.get("type", "")
+                difficulty = type_to_difficulty.get(q_type, "medium")
+                result.append(({**q, "difficulty": difficulty}, topic))
 
         return result
