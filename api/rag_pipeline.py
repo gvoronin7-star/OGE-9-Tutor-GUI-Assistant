@@ -119,7 +119,7 @@ class RAGPipeline:
                 loaded = await self.existing_store.load()
 
                 if loaded:
-                    logger.info("✓ RAG_data_base загружена (197 чанков ФИПИ)")
+                    logger.info("✓ RAG_data_base загружена (157 чанков ФИПИ)")
                     self.use_existing = True
                 else:
                     logger.warning(

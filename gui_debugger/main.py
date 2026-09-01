@@ -103,7 +103,7 @@ def main():
             rag_pipeline, cache_manager, test_generator = initialize_rag()
 
             if rag_pipeline and rag_pipeline.use_existing:
-                print(f"[OK] RAG_data_base active (197 FIPI chunks)")
+                print(f"[OK] RAG_data_base active (157 FIPI chunks)")
             else:
                 print("[WARNING] RAG_data_base not active - some features may not work")
 

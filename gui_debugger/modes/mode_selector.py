@@ -75,7 +75,7 @@ class ModeSelector(ttk.Frame):
         # Информация о версии
         version_label = ttk.Label(
             self,
-            text="Версия 2.0 | 197 чанков ФИПИ | RAG-пайплайн активен",
+            text="Версия 2.0 | 157 чанков ФИПИ | RAG-пайплайн активен",
             font=("Segoe UI", 9),
             foreground="#606060",
         )
