@@ -18,14 +18,36 @@ class LocalSearch {
 
   const LocalSearch(this.chunks);
 
+  /// Чанки короче [_shortChunkChars] символов (заголовки страниц,
+  /// пункты инструкций вида «задания 1, 15, 19...», «© ФГБНУ ФИПИ...»)
+  /// систематически получают завышенный косинус почти на любой запрос
+  /// — особенность CLS-пулинга на очень коротких текстах, а не
+  /// признак релевантности (найдено вручную на реальном устройстве:
+  /// «а б в г д» — 9 символов — стабильно входит в топ-5 результатов
+  /// с cosine 0.72–0.83 независимо от темы запроса). Такие чанки не
+  /// убираются из поиска целиком — иногда именно они самые релевантные
+  /// («трудоустройство несовершеннолетних», 34 символа, тоже короткий,
+  /// но по существу) — вместо этого их итоговый score линейно
+  /// приглушается пропорционально длине текста, чтобы длинные
+  /// содержательные чанки с сопоставимым сырым косинусом ранжировались
+  /// выше.
+  static const _shortChunkChars = 80;
+
   List<SearchResult> search(List<double> queryVector, {int topK = 5}) {
-    final scored = chunks
-        .map(
-          (c) => SearchResult(chunk: c, score: _cosine(queryVector, c.vector)),
-        )
-        .toList();
+    final scored = chunks.map((c) {
+      final rawScore = _cosine(queryVector, c.vector);
+      return SearchResult(
+        chunk: c,
+        score: rawScore * _lengthConfidence(c.text),
+      );
+    }).toList();
     scored.sort((a, b) => b.score.compareTo(a.score));
     return scored.take(topK).toList(growable: false);
+  }
+
+  double _lengthConfidence(String text) {
+    if (text.length >= _shortChunkChars) return 1.0;
+    return text.length / _shortChunkChars;
   }
 
   double _cosine(List<double> a, List<double> b) {
