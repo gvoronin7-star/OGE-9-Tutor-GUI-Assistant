@@ -41,8 +41,7 @@ dependencies:
   path: ^1.9.1
   dio: ^5.11.0
   shared_preferences: ^2.5.5
-  onnxruntime: ^1.4.1
-
+  flutter_onnxruntime: ^1.8.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

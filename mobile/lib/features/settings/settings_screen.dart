@@ -78,13 +78,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 16,
+            runSpacing: 8,
             children: [
               FilledButton(
                 onPressed: _saveUrl,
                 child: const Text('Сохранить и проверить'),
               ),
-              const SizedBox(width: 16),
               _ConnectionIndicator(state: _connection),
             ],
           ),

@@ -6,7 +6,10 @@ plugins {
 
 android {
     namespace = "com.ogetutor.mobile"
-    compileSdk = flutter.compileSdkVersion
+    // onnxruntime's transitive androidx deps (lifecycle-process,
+    // annotation-experimental, exifinterface) require compileSdk >= 34;
+    // Flutter's own default (flutter.compileSdkVersion) was below that.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

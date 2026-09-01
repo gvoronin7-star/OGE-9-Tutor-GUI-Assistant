@@ -13,7 +13,10 @@ class Topic {
 }
 
 class Chunk {
-  final int id;
+  // Squeezer's chunk_id is page-relative ("chunk_007", resets per page),
+  // not a stable global int - kept as-is rather than re-deriving a
+  // fake numeric id.
+  final String id;
   final String text;
   final String? summary;
   final List<String> keywords;
@@ -30,7 +33,7 @@ class Chunk {
   });
 
   factory Chunk.fromJson(Map<String, dynamic> json) => Chunk(
-    id: json['id'] as int,
+    id: json['id'] as String,
     text: json['text'] as String,
     summary: json['summary'] as String?,
     keywords: (json['keywords'] as List?)?.cast<String>() ?? const [],

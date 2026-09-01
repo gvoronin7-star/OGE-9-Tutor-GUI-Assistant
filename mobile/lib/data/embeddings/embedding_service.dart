@@ -1,8 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:flutter/services.dart' show rootBundle;
-import 'package:onnxruntime/onnxruntime.dart';
+import 'package:flutter_onnxruntime/flutter_onnxruntime.dart';
 
 import 'bert_tokenizer.dart';
 
@@ -14,75 +13,82 @@ import 'bert_tokenizer.dart';
 /// что sentence-transformers для этой конкретной модели (пулинг по
 /// CLS, не усреднение - см. 1_Pooling/config.json в кэше HuggingFace,
 /// проверено в scripts/verify_mobile_embedding_model.py).
+///
+/// Использует `flutter_onnxruntime`, а не `onnxruntime` (изначальный
+/// выбор) - тот пакет не обновлялся 2 года, его Android-модуль собран
+/// под compileSdk 33, а его собственные транзитивные androidx-зависимости
+/// (lifecycle 2.7.0 и др.) требуют 34+ - сборка падала на этом
+/// несоответствии независимо от compileSdk самого приложения (это
+/// метаданные, зашитые в уже опубликованный .aar, а не настройка,
+/// которую можно переопределить со стороны потребителя).
 class EmbeddingService {
   static const _modelAsset = 'assets/models/rubert_tiny2.int8.onnx';
   static const _vocabAsset = 'assets/models/vocab.txt';
 
+  final OnnxRuntime _runtime = OnnxRuntime();
   OrtSession? _session;
   BertTokenizer? _tokenizer;
 
   Future<void> init() async {
     if (_session != null) return;
-
-    OrtEnv.instance.init();
-
-    final modelBytes = (await rootBundle.load(
-      _modelAsset,
-    )).buffer.asUint8List();
-    _session = OrtSession.fromBuffer(modelBytes, OrtSessionOptions());
+    _session = await _runtime.createSessionFromAsset(_modelAsset);
     _tokenizer = await BertTokenizer.loadFromAssets(_vocabAsset);
   }
 
   Future<List<double>> embed(String text) async {
-    if (_session == null || _tokenizer == null) {
+    final session = _session;
+    final tokenizer = _tokenizer;
+    if (session == null || tokenizer == null) {
       throw StateError('EmbeddingService.init() must be awaited first');
     }
 
-    final encoded = _tokenizer!.encode(text);
+    final encoded = tokenizer.encode(text);
     final seqLen = encoded.inputIds.length;
     final shape = [1, seqLen];
 
-    final inputIdsTensor = OrtValueTensor.createTensorWithDataList(
+    final inputIdsTensor = await OrtValue.fromList(
       Int64List.fromList(encoded.inputIds),
       shape,
     );
-    final attentionMaskTensor = OrtValueTensor.createTensorWithDataList(
+    final attentionMaskTensor = await OrtValue.fromList(
       Int64List.fromList(encoded.attentionMask),
       shape,
     );
-    final tokenTypeIdsTensor = OrtValueTensor.createTensorWithDataList(
+    final tokenTypeIdsTensor = await OrtValue.fromList(
       Int64List.fromList(encoded.tokenTypeIds),
       shape,
     );
 
+    Map<String, OrtValue>? outputs;
     try {
-      final outputs = await _session!.runAsync(OrtRunOptions(), {
+      outputs = await session.run({
         'input_ids': inputIdsTensor,
         'attention_mask': attentionMaskTensor,
         'token_type_ids': tokenTypeIdsTensor,
       });
 
-      final hiddenState = outputs?.first?.value;
-      final flat = _flattenLastHiddenState(hiddenState, seqLen);
-      for (final output in outputs ?? <OrtValue?>[]) {
-        output?.release();
-      }
+      final hiddenState = await outputs['last_hidden_state']!.asList();
+      final flat = _flattenLastHiddenState(hiddenState);
       return _clsPoolAndNormalize(flat, hiddenSize: flat.length ~/ seqLen);
     } finally {
-      inputIdsTensor.release();
-      attentionMaskTensor.release();
-      tokenTypeIdsTensor.release();
+      await inputIdsTensor.dispose();
+      await attentionMaskTensor.dispose();
+      await tokenTypeIdsTensor.dispose();
+      if (outputs != null) {
+        for (final value in outputs.values) {
+          await value.dispose();
+        }
+      }
     }
   }
 
   /// `last_hidden_state` приходит как вложенные List (batch=1, seqLen,
   /// hiddenSize) - разворачивается в плоский список для удобства среза
   /// CLS-токена ниже.
-  List<double> _flattenLastHiddenState(dynamic value, int seqLen) {
-    final batch = value as List;
-    final sequence = batch[0] as List;
+  List<double> _flattenLastHiddenState(List value) {
+    final batch = value[0] as List;
     final flat = <double>[];
-    for (final tokenVector in sequence) {
+    for (final tokenVector in batch) {
       for (final v in tokenVector as List) {
         flat.add((v as num).toDouble());
       }
@@ -103,8 +109,8 @@ class EmbeddingService {
     return cls.map((v) => v / norm).toList(growable: false);
   }
 
-  void dispose() {
-    _session?.release();
+  Future<void> dispose() async {
+    await _session?.close();
     _session = null;
   }
 }

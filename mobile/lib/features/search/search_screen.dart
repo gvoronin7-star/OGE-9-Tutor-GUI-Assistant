@@ -45,7 +45,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         _results = results;
         _loading = false;
       });
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('SEARCH ERROR: $e\n$st');
       if (!mounted) return;
       setState(() {
         _error = 'Не удалось выполнить поиск: $e';
