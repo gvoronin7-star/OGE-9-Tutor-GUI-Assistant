@@ -12,7 +12,16 @@ class TopicsListScreen extends ConsumerWidget {
     final topicsAsync = ref.watch(topicsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Темы ОГЭ')),
+      appBar: AppBar(
+        title: const Text('Темы ОГЭ'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Поиск по базе ФИПИ',
+            onPressed: () => context.push('/search'),
+          ),
+        ],
+      ),
       body: topicsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) =>

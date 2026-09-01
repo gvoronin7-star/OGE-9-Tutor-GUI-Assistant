@@ -12,6 +12,33 @@ class Topic {
   );
 }
 
+class Chunk {
+  final int id;
+  final String text;
+  final String? summary;
+  final List<String> keywords;
+  final int? page;
+  final List<double> vector;
+
+  const Chunk({
+    required this.id,
+    required this.text,
+    required this.summary,
+    required this.keywords,
+    required this.page,
+    required this.vector,
+  });
+
+  factory Chunk.fromJson(Map<String, dynamic> json) => Chunk(
+    id: json['id'] as int,
+    text: json['text'] as String,
+    summary: json['summary'] as String?,
+    keywords: (json['keywords'] as List?)?.cast<String>() ?? const [],
+    page: json['page'] as int?,
+    vector: (json['vector'] as List).map((v) => (v as num).toDouble()).toList(),
+  );
+}
+
 class Question {
   final String topicId;
   final String topicTitle;

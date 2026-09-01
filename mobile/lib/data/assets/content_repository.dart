@@ -22,4 +22,12 @@ class ContentRepository {
         .map((e) => Question.fromJson(e as Map<String, dynamic>))
         .toList(growable: false);
   }
+
+  Future<List<Chunk>> loadChunks() async {
+    final raw = await rootBundle.loadString('assets/data/chunks.json');
+    final decoded = jsonDecode(raw) as List;
+    return decoded
+        .map((e) => Chunk.fromJson(e as Map<String, dynamic>))
+        .toList(growable: false);
+  }
 }

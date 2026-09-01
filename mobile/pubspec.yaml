@@ -41,6 +41,7 @@ dependencies:
   path: ^1.9.1
   dio: ^5.11.0
   shared_preferences: ^2.5.5
+  onnxruntime: ^1.4.1
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +55,8 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.5
   build_runner: ^2.15.1
+  integration_test:
+    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -69,6 +72,9 @@ flutter:
   assets:
     - assets/data/topics.json
     - assets/data/questions.json
+    - assets/data/chunks.json
+    - assets/models/rubert_tiny2.int8.onnx
+    - assets/models/vocab.txt
 
   # To add assets to your application, add an assets section, like this:
   # assets:

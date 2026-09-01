@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/help/help_screen.dart';
 import '../features/progress/progress_screen.dart';
+import '../features/search/search_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/tests/test_result_screen.dart';
 import '../features/tests/test_taking_screen.dart';
@@ -26,6 +27,10 @@ final router = GoRouter(
                   TopicDetailScreen(topicId: state.pathParameters['topicId']!),
             ),
           ],
+        ),
+        GoRoute(
+          path: '/search',
+          builder: (context, state) => const SearchScreen(),
         ),
         GoRoute(
           path: '/tests',

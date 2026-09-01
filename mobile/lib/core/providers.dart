@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/assets/content_repository.dart';
+import '../data/embeddings/embedding_service.dart';
+import '../data/embeddings/local_search.dart';
 import '../data/local_db/database.dart';
 import '../data/remote/api_client.dart';
 import 'models.dart';
@@ -20,6 +22,21 @@ final serverModeEnabledProvider = StateProvider<bool>((ref) => false);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(ref.watch(serverUrlProvider));
+});
+
+final chunksProvider = FutureProvider<List<Chunk>>((ref) {
+  return ref.read(contentRepositoryProvider).loadChunks();
+});
+
+final embeddingServiceProvider = Provider<EmbeddingService>((ref) {
+  final service = EmbeddingService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+final localSearchProvider = FutureProvider<LocalSearch>((ref) async {
+  final chunks = await ref.watch(chunksProvider.future);
+  return LocalSearch(chunks);
 });
 
 final databaseProvider = Provider<AppDatabase>((ref) {
