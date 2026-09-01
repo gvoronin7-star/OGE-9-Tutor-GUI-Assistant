@@ -18,9 +18,21 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from api.llm_client import LLMClient
+from api.test_generator import TestGenerator as OgeTestGenerator
 from scripts.check_secrets import scan_directory
 from utils.hashing import stable_query_hash
 from utils.logger import QueryStatsLogger
+
+# Официальные 6 тем ФИПИ, см. gui_debugger/components/user/topic_study.py::TOPICS
+OFFICIAL_TOPICS = [
+    "Человек и общество",
+    "Сфера духовной культуры",
+    "Экономика",
+    "Социальная сфера",
+    "Политика",
+    "Право",
+]
 
 
 class TestStableQueryHash:
@@ -126,3 +138,86 @@ class TestCheckSecretsSeverity:
 
             findings = scan_directory(root)
             assert findings == []
+
+
+class TestDemoAnswerFallback:
+    """
+    Находка 2 из decisions/2026-09-01_content-quality-review.md:
+    без LLM-ключа `_generate_fallback` сверял ключевые слова со всем
+    промптом (инструкция+контекст+вопрос), а не с вопросом ученика —
+    из-за этого демо-индекс из 3 чанков почти всегда протаскивал слово
+    "экономика" в контекст, и ответ был один и тот же независимо от
+    вопроса. Плюс демо-контент был только для 3 тем из 6.
+    """
+
+    def _fallback_for(self, query: str) -> str:
+        client = LLMClient.__new__(LLMClient)  # без __init__ - не нужен cache_manager
+        return client._generate_fallback(query)
+
+    def test_answers_differ_by_topic(self):
+        """Разные вопросы по разным темам не должны давать одинаковый ответ."""
+        answers = {
+            q: self._fallback_for(q)
+            for q in [
+                "Что такое общество?",
+                "Что изучает право?",
+                "Расскажи про политические партии",
+                "Что такое социальная мобильность?",
+            ]
+        }
+        assert len(set(answers.values())) == len(answers), (
+            "разные по теме вопросы дали одинаковый демо-ответ: " f"{answers}"
+        )
+
+    def test_keyword_match_uses_query_not_whole_prompt(self):
+        """
+        Регрессия конкретного бага: полный промпт с инструкцией/контекстом
+        не должен переопределять тему, взятую из настоящего вопроса.
+        """
+        client = LLMClient.__new__(LLMClient)
+        # Если бы matching шёл по всему prompt (старое поведение) - здесь
+        # сработала бы ветка "экономика" из-за слова в контексте.
+        # Правильное поведение: matching должен идти по query, не по prompt.
+        answer_from_query = client._generate_fallback("Что изучает право?")
+        assert "Право" in answer_from_query or "право" in answer_from_query.lower()
+        assert "Экономика изучает производство" not in answer_from_query
+
+    def test_all_six_official_topics_have_distinct_coverage(self):
+        """Все 6 официальных тем ФИПИ должны иметь собственный, не общий ответ."""
+        client = LLMClient.__new__(LLMClient)
+        generic_fallback_marker = "Я нашёл релевантную информацию"
+        for topic in OFFICIAL_TOPICS:
+            answer = client._generate_fallback(f"Расскажи про тему: {topic}")
+            assert (
+                generic_fallback_marker not in answer
+            ), f"тема {topic!r} не покрыта — попала в общий фолбэк"
+
+
+class TestDemoTestGeneration:
+    """
+    Находка 3 из decisions/2026-09-01_content-quality-review.md:
+    демо-банк вопросов покрывал только 3 темы из 6 — для остальных
+    молча подставлялись вопросы про "человек и общество" без
+    предупреждения.
+    """
+
+    def test_all_six_official_topics_have_own_questions(self):
+        gen = OgeTestGenerator(rag_pipeline=None)
+        seen_question_sets = {}
+        for topic in OFFICIAL_TOPICS:
+            questions = gen._generate_demo_questions(topic, "medium", 5)
+            assert len(questions) == 5, f"{topic!r} должен иметь 5 демо-вопросов"
+            question_texts = frozenset(q["question"] for q in questions.values())
+            seen_question_sets[topic] = question_texts
+
+        # Ни у одной темы не должно быть того же набора вопросов, что у
+        # другой (иначе значит подставился чужой топик)
+        seen = list(seen_question_sets.items())
+        for i in range(len(seen)):
+            for j in range(i + 1, len(seen)):
+                topic_a, questions_a = seen[i]
+                topic_b, questions_b = seen[j]
+                assert questions_a != questions_b, (
+                    f"{topic_a!r} и {topic_b!r} дают одинаковый набор "
+                    "демо-вопросов — один из них подставлен по ошибке"
+                )

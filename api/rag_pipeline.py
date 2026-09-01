@@ -381,7 +381,8 @@ class RAGPipeline:
             if self.llm_client:
                 llm_start = time.time()
                 answer = await self.llm_client.generate(
-                    prompt=self.SYSTEM_PROMPT.format(context=context, query=query)
+                    prompt=self.SYSTEM_PROMPT.format(context=context, query=query),
+                    query=query,
                 )
                 llm_duration = (time.time() - llm_start) * 1000
                 logger_rag.info(f"LLM ответ за {llm_duration:.2f}ms")
