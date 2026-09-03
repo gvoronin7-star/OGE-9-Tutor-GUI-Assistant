@@ -10,6 +10,7 @@ class TopicsListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final topicsAsync = ref.watch(topicsProvider);
+    final studiedIds = ref.watch(studiedTopicIdsProvider).valueOrNull ?? const {};
 
     return Scaffold(
       appBar: AppBar(
@@ -31,8 +32,16 @@ class TopicsListScreen extends ConsumerWidget {
           separatorBuilder: (_, _) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final topic = topics[index];
+            final studied = studiedIds.contains(topic.id);
             return ListTile(
+              leading: Icon(
+                studied ? Icons.check_circle : Icons.circle_outlined,
+                color: studied
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.outline,
+              ),
               title: Text(topic.title),
+              subtitle: studied ? const Text('Изучено') : null,
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.push('/topics/${topic.id}'),
             );

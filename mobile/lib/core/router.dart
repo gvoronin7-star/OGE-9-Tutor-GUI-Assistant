@@ -10,6 +10,7 @@ import '../features/tests/tests_list_screen.dart';
 import '../features/topics/topic_detail_screen.dart';
 import '../features/topics/topics_list_screen.dart';
 import 'main_shell.dart';
+import 'models.dart';
 
 final router = GoRouter(
   initialLocation: '/topics',
@@ -46,9 +47,13 @@ final router = GoRouter(
                   builder: (context, state) {
                     final extra = state.extra as Map<String, Object?>;
                     return TestResultScreen(
+                      topicId: state.pathParameters['topicId']!,
                       score: extra['score']! as int,
                       total: extra['total']! as int,
                       topicTitle: extra['topicTitle']! as String,
+                      answers:
+                          extra['answers'] as List<AnsweredQuestion>? ??
+                          const [],
                     );
                   },
                 ),

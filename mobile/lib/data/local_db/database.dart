@@ -45,6 +45,11 @@ class AppDatabase extends _$AppDatabase {
     return rows.length;
   }
 
+  Future<Set<String>> studiedTopicIds() async {
+    final rows = await select(studiedTopics).get();
+    return rows.map((r) => r.topicId).toSet();
+  }
+
   Future<void> recordTestAttempt({
     required String topicId,
     required String topicTitle,

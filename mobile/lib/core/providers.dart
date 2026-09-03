@@ -70,6 +70,11 @@ final studiedTopicsCountProvider = FutureProvider<int>((ref) {
   return ref.read(databaseProvider).studiedTopicsCount();
 });
 
+final studiedTopicIdsProvider = FutureProvider<Set<String>>((ref) {
+  ref.watch(progressRevisionProvider);
+  return ref.read(databaseProvider).studiedTopicIds();
+});
+
 final recentAttemptsProvider = FutureProvider<List<TestAttempt>>((ref) {
   ref.watch(progressRevisionProvider);
   return ref.read(databaseProvider).recentAttempts();

@@ -71,3 +71,17 @@ class Question {
     explanation: json['explanation'] as String,
   );
 }
+
+/// One answered question from a completed test attempt, kept in memory
+/// only for the review list on the result screen right after finishing.
+class AnsweredQuestion {
+  final String question;
+  final bool isCorrect;
+  final String correctAnswerText;
+
+  const AnsweredQuestion({
+    required this.question,
+    required this.isCorrect,
+    required this.correctAnswerText,
+  });
+}

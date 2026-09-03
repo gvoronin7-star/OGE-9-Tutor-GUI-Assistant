@@ -21,6 +21,7 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
   int _score = 0;
   int? _selectedAnswer;
   bool _answered = false;
+  final List<AnsweredQuestion> _reviewLog = [];
   final Stopwatch _stopwatch = Stopwatch()..start();
   Timer? _ticker;
   Duration _elapsed = Duration.zero;
@@ -161,17 +162,21 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
               final isCorrect = i == question.correctAnswer;
               final isSelected = i == _selectedAnswer;
               Color? tileColor;
+              Widget? trailing;
               if (_answered) {
                 if (isCorrect) {
                   tileColor = Colors.green.withValues(alpha: 0.2);
+                  trailing = const Icon(Icons.check_circle, color: Colors.green);
                 } else if (isSelected) {
                   tileColor = Colors.red.withValues(alpha: 0.2);
+                  trailing = const Icon(Icons.cancel, color: Colors.red);
                 }
               }
               return Card(
                 color: tileColor,
                 child: ListTile(
                   title: Text(question.answers[i]),
+                  trailing: trailing,
                   onTap: _answered
                       ? null
                       : () {
@@ -179,6 +184,14 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
                             _selectedAnswer = i;
                             _answered = true;
                             if (isCorrect) _score++;
+                            _reviewLog.add(
+                              AnsweredQuestion(
+                                question: question.question,
+                                isCorrect: isCorrect,
+                                correctAnswerText:
+                                    question.answers[question.correctAnswer],
+                              ),
+                            );
                           });
                         },
                 ),
@@ -234,6 +247,7 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
         'score': _score,
         'total': questions.length,
         'topicTitle': topicTitle,
+        'answers': _reviewLog,
       },
     );
   }
