@@ -3,7 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsRepository {
   static const _serverUrlKey = 'server_url';
   static const _serverModeKey = 'server_mode_enabled';
-  static const defaultServerUrl = 'http://10.0.2.2:8000';
+  // Пусто по умолчанию: 10.0.2.2 - алиас на loopback хоста, работающий
+  // только внутри Android-эмулятора, на реальном телефоне такого адреса
+  // не существует - см. decisions/2026-09-03_mobile-ui-ux-audit.md.
+  static const defaultServerUrl = '';
 
   Future<String> loadServerUrl() async {
     final prefs = await SharedPreferences.getInstance();

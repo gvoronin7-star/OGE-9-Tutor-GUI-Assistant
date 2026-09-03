@@ -40,6 +40,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _saveUrl() async {
     final url = _urlController.text.trim();
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Введите адрес сервера')),
+      );
+      return;
+    }
     ref.read(serverUrlProvider.notifier).state = url;
     await ref.read(settingsRepositoryProvider).saveServerUrl(url);
     await _checkConnection();
@@ -73,9 +79,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             controller: _urlController,
             decoration: const InputDecoration(
               labelText: 'Адрес сервера',
-              hintText: 'http://10.0.2.2:8000',
+              hintText: 'например, http://192.168.1.10:8000',
               border: OutlineInputBorder(),
             ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Это адрес компьютера с десктопным приложением в вашей локальной '
+            'сети (не адрес самого телефона). Узнать его: на компьютере '
+            'выполнить ipconfig (Windows) или ifconfig (macOS/Linux) и '
+            'найти строку вида IPv4-адрес / inet.',
+            style: TextStyle(fontSize: 12.5, color: Colors.grey),
           ),
           const SizedBox(height: 8),
           Wrap(
