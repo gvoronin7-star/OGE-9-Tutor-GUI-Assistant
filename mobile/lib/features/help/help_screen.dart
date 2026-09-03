@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class HelpScreen extends StatelessWidget {
   const HelpScreen({super.key});
@@ -9,8 +10,8 @@ class HelpScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Помощь')),
       body: ListView(
         padding: const EdgeInsets.all(16),
-        children: const [
-          _HelpSection(
+        children: [
+          const _HelpSection(
             title: 'Как пользоваться приложением',
             body:
                 'Вкладка «Темы» — статьи по всем 6 официальным темам ОГЭ по '
@@ -19,20 +20,45 @@ class HelpScreen extends StatelessWidget {
                 'сколько тем изучено, сколько тестов пройдено и с какой '
                 'точностью.',
           ),
-          _HelpSection(
+          const _HelpSection(
             title: 'Работает офлайн',
             body:
                 'Все темы и тесты хранятся на устройстве — интернет для '
                 'занятий не нужен. Прогресс тоже сохраняется локально.',
           ),
-          _HelpSection(
+          const _HelpSection(
             title: 'О приложении',
             body:
                 'OGE-9-Tutor Mobile — версия десктопного помощника для '
                 'подготовки к ОГЭ по обществознанию.',
           ),
+          const SizedBox(height: 8),
+          const _VersionLabel(),
         ],
       ),
+    );
+  }
+}
+
+class _VersionLabel extends StatelessWidget {
+  const _VersionLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final info = snapshot.data;
+        final text = info == null
+            ? ' '
+            : 'Версия ${info.version} (сборка ${info.buildNumber})';
+        return Text(
+          text,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline),
+        );
+      },
     );
   }
 }

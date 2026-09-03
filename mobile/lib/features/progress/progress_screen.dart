@@ -89,6 +89,7 @@ class _StatsRow extends StatelessWidget {
           child: _StatCard(
             label: 'Темы изучены',
             value: '$studied/$topicsTotal',
+            progress: topicsTotal == 0 ? 0 : studied / topicsTotal,
           ),
         ),
         const SizedBox(width: 8),
@@ -107,8 +108,9 @@ class _StatsRow extends StatelessWidget {
 class _StatCard extends StatelessWidget {
   final String label;
   final String value;
+  final double? progress;
 
-  const _StatCard({required this.label, required this.value});
+  const _StatCard({required this.label, required this.value, this.progress});
 
   @override
   Widget build(BuildContext context) {
@@ -117,7 +119,28 @@ class _StatCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Text(value, style: Theme.of(context).textTheme.headlineSmall),
+            if (progress != null)
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircularProgressIndicator(
+                      value: 1,
+                      strokeWidth: 4,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
+                    CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 4,
+                    ),
+                    Text(value, style: Theme.of(context).textTheme.labelLarge),
+                  ],
+                ),
+              )
+            else
+              Text(value, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 4),
             Text(
               label,

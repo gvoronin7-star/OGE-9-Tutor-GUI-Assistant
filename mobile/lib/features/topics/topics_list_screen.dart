@@ -4,11 +4,33 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 
-class TopicsListScreen extends ConsumerWidget {
+class TopicsListScreen extends ConsumerStatefulWidget {
   const TopicsListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TopicsListScreen> createState() => _TopicsListScreenState();
+}
+
+class _TopicsListScreenState extends ConsumerState<TopicsListScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowOnboarding());
+  }
+
+  Future<void> _maybeShowOnboarding() async {
+    final settings = ref.read(settingsRepositoryProvider);
+    final seen = await settings.loadOnboardingSeen();
+    if (seen || !mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => const _OnboardingDialog(),
+    );
+    await settings.saveOnboardingSeen();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final topicsAsync = ref.watch(topicsProvider);
     final studiedIds = ref.watch(studiedTopicIdsProvider).valueOrNull ?? const {};
 
@@ -48,6 +70,68 @@ class TopicsListScreen extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _OnboardingDialog extends StatelessWidget {
+  const _OnboardingDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Добро пожаловать!'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          _OnboardingPoint(
+            icon: Icons.cloud_off_outlined,
+            text:
+                'Работает офлайн — все темы и тесты уже на устройстве, '
+                'интернет для занятий не нужен.',
+          ),
+          SizedBox(height: 16),
+          _OnboardingPoint(
+            icon: Icons.search,
+            text:
+                'Поиск понимает смысл вопроса, а не только точные слова — '
+                'ищет по всей базе ФИПИ прямо на телефоне.',
+          ),
+          SizedBox(height: 16),
+          _OnboardingPoint(
+            icon: Icons.dns_outlined,
+            text:
+                'В настройках можно подключить тот же сервер, что '
+                'использует десктопное приложение, вместо локального банка.',
+          ),
+        ],
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Понятно'),
+        ),
+      ],
+    );
+  }
+}
+
+class _OnboardingPoint extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _OnboardingPoint({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 12),
+        Expanded(child: Text(text)),
+      ],
     );
   }
 }
