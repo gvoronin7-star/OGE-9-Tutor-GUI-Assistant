@@ -33,12 +33,27 @@ class LocalSearch {
   /// выше.
   static const _shortChunkChars = 80;
 
+  /// Методические/процедурные шаблоны из исходного PDF ФИПИ (списки
+  /// номеров заданий вида «задания 1, 15, 19...», инструкции по подготовке
+  /// «после изучения темы Х прорешать...», копирайт-плашки) - не короче
+  /// порога длины выше, поэтому демпфирование по длине их не касается, но
+  /// они не отвечают на содержательный вопрос по теме. Регулярка проверена
+  /// на всём датасете из 157 чанков (см. decisions/decision-log.md,
+  /// запись про качество офлайн-поиска) - размечает ~44% чанков, что на
+  /// глаз соответствует реальной доле методического текста в источнике
+  /// (методичка ФИПИ, не только предметный материал).
+  static final _proceduralPattern = RegExp(
+    r'©|фипи|фгбну|задани[а-яё]*\s*\d|тема\s*\d|после изучения темы|'
+    r'прорешать в каждом варианте|бланке\s*№|советуем при подготовке|'
+    r'легенде диаграммы',
+  );
+
   List<SearchResult> search(List<double> queryVector, {int topK = 5}) {
     final scored = chunks.map((c) {
       final rawScore = _cosine(queryVector, c.vector);
       return SearchResult(
         chunk: c,
-        score: rawScore * _lengthConfidence(c.text),
+        score: rawScore * _lengthConfidence(c.text) * _proceduralConfidence(c.text),
       );
     }).toList();
     scored.sort((a, b) => b.score.compareTo(a.score));
@@ -48,6 +63,14 @@ class LocalSearch {
   double _lengthConfidence(String text) {
     if (text.length >= _shortChunkChars) return 1.0;
     return text.length / _shortChunkChars;
+  }
+
+  /// Умеренный, не полный штраф - методический фрагмент всё ещё может
+  /// всплыть, если по запросу реально нет ничего более содержательного,
+  /// но проигрывает конкуренцию обычному предметному тексту сопоставимой
+  /// сырой похожести.
+  double _proceduralConfidence(String text) {
+    return _proceduralPattern.hasMatch(text) ? 0.5 : 1.0;
   }
 
   double _cosine(List<double> a, List<double> b) {

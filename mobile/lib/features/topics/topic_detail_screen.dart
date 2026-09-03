@@ -9,6 +9,34 @@ import '../../core/providers.dart';
 // абзаца остаётся обычным начертанием.
 final _definitionTermPattern = RegExp(r'^([^—\n]{1,50}?\s—\s)');
 
+class _TopicIllustration extends StatelessWidget {
+  final String assetPath;
+  final String caption;
+
+  const _TopicIllustration({required this.assetPath, required this.caption});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Image.asset(assetPath),
+            const SizedBox(height: 8),
+            Text(
+              caption,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class TopicDetailScreen extends ConsumerStatefulWidget {
   final String topicId;
 
@@ -141,6 +169,13 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
                   )
                 else
                   ..._buildArticleParagraphs(context, topic.article),
+                if (!showingRemote && topic.id == 'society') ...[
+                  const SizedBox(height: 8),
+                  _TopicIllustration(
+                    assetPath: 'assets/images/social_institutions.png',
+                    caption: 'Общество как система социальных институтов',
+                  ),
+                ],
                 const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: () => context.push('/tests/${topic.id}'),

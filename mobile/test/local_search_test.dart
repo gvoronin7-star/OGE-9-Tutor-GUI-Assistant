@@ -54,4 +54,43 @@ void main() {
       expect(result.score, closeTo(0.1, 1e-9));
     });
   });
+
+  group('LocalSearch procedural-template damping', () {
+    test('a long chunk matching a procedural template outranks nothing new '
+        'on its own, but is scored below an equally-relevant plain chunk', () {
+      final query = [1.0, 0.0];
+      final proceduralChunk = _chunk(
+        'после изучения темы «право» прорешать в каждом варианте задания 16-18, '
+        'это поможет закрепить материал перед экзаменом окончательно.',
+        [1.0, 0.0],
+      );
+      final plainChunk = _chunk(
+        'Право — система обязательных норм, регулирующих отношения между людьми '
+        'и устанавливаемых государством, за нарушение которых следует ответственность.',
+        [1.0, 0.0],
+      );
+
+      final results = LocalSearch([
+        proceduralChunk,
+        plainChunk,
+      ]).search(query, topK: 2);
+
+      expect(results.first.chunk.text, plainChunk.text);
+      expect(results.last.chunk.text, proceduralChunk.text);
+      expect(results.last.score, closeTo(0.5, 1e-9));
+    });
+
+    test('a long chunk with no procedural markers is not penalised', () {
+      final query = [1.0, 0.0];
+      final chunk = _chunk(
+        'Гражданское право регулирует имущественные отношения, вопросы '
+        'собственности и заключения договоров между участниками оборота.',
+        [1.0, 0.0],
+      );
+
+      final result = LocalSearch([chunk]).search(query, topK: 1).single;
+
+      expect(result.score, closeTo(1.0, 1e-9));
+    });
+  });
 }

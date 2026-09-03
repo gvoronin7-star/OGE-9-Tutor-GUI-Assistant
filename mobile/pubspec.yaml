@@ -70,6 +70,7 @@ flutter:
     - assets/data/chunks.json
     - assets/models/rubert_tiny2.int8.onnx
     - assets/models/vocab.txt
+    - assets/images/social_institutions.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

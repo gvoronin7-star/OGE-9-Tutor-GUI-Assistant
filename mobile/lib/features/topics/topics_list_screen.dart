@@ -45,30 +45,94 @@ class _TopicsListScreenState extends ConsumerState<TopicsListScreen> {
           ),
         ],
       ),
-      body: topicsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) =>
-            Center(child: Text('Не удалось загрузить темы: $err')),
-        data: (topics) => ListView.separated(
-          itemCount: topics.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final topic = topics[index];
-            final studied = studiedIds.contains(topic.id);
-            return ListTile(
-              leading: Icon(
-                studied ? Icons.check_circle : Icons.circle_outlined,
-                color: studied
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.outline,
+      body: Column(
+        children: [
+          const _SubjectRow(),
+          Expanded(
+            child: topicsAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) =>
+                  Center(child: Text('Не удалось загрузить темы: $err')),
+              data: (topics) => ListView.separated(
+                itemCount: topics.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final topic = topics[index];
+                  final studied = studiedIds.contains(topic.id);
+                  return ListTile(
+                    leading: Icon(
+                      studied ? Icons.check_circle : Icons.circle_outlined,
+                      color: studied
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outline,
+                    ),
+                    title: Text(topic.title),
+                    subtitle: studied ? const Text('Изучено') : null,
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/topics/${topic.id}'),
+                  );
+                },
               ),
-              title: Text(topic.title),
-              subtitle: studied ? const Text('Изучено') : null,
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/topics/${topic.id}'),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Ряд предмет/экзамен над списком тем - сейчас доступно только
+/// обществознание и ОГЭ, остальное показано как "скоро" (неактивные
+/// плашки), чтобы архитектурная готовность к расширению была видна
+/// в интерфейсе, а не только в сопроводительных документах.
+class _SubjectRow extends StatelessWidget {
+  const _SubjectRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          Chip(
+            avatar: Icon(Icons.check, size: 18, color: scheme.onPrimary),
+            label: const Text('Обществознание · ОГЭ'),
+            backgroundColor: scheme.primary,
+            labelStyle: TextStyle(color: scheme.onPrimary),
+            side: BorderSide.none,
+          ),
+          Tooltip(
+            message: 'Скоро будет доступно',
+            child: Chip(
+              avatar: Icon(
+                Icons.schedule,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
+              label: const Text('Другие предметы'),
+              backgroundColor: scheme.surfaceContainerHighest,
+              labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+              side: BorderSide.none,
+            ),
+          ),
+          Tooltip(
+            message: 'Скоро будет доступно',
+            child: Chip(
+              avatar: Icon(
+                Icons.schedule,
+                size: 18,
+                color: scheme.onSurfaceVariant,
+              ),
+              label: const Text('ЕГЭ'),
+              backgroundColor: scheme.surfaceContainerHighest,
+              labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+              side: BorderSide.none,
+            ),
+          ),
+        ],
       ),
     );
   }
