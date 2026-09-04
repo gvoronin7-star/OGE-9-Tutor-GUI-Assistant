@@ -29,9 +29,7 @@ def draw_icon(background: bool) -> Image.Image:
     draw = ImageDraw.Draw(img)
 
     if background:
-        draw.rounded_rectangle(
-            [(0, 0), (SIZE, SIZE)], radius=SIZE // 5, fill=INDIGO
-        )
+        draw.rounded_rectangle([(0, 0), (SIZE, SIZE)], radius=SIZE // 5, fill=INDIGO)
 
     cx, cy = SIZE // 2, SIZE // 2 - SIZE // 30
 

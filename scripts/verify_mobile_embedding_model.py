@@ -67,7 +67,9 @@ def main() -> None:
             / (np.linalg.norm(onnx_vector) * np.linalg.norm(reference_vector))
         )
         max_cosine_diff = max(max_cosine_diff, 1 - cosine)
-        print(f"cosine(onnx_int8, sentence_transformers) = {cosine:.5f}  | {sentence!r}")
+        print(
+            f"cosine(onnx_int8, sentence_transformers) = {cosine:.5f}  | {sentence!r}"
+        )
 
         fixtures.append(
             {
