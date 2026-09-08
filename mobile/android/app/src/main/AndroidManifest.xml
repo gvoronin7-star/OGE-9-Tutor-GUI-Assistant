@@ -1,8 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- INTERNET раньше был объявлен только в src/debug и src/profile
+         манифестах (стандартная ловушка шаблона Flutter - debug/profile
+         получают его для hot-reload) - в релизной сборке серверный режим
+         не мог работать вообще, ни при каком адресе. usesCleartextTraffic
+         нужен отдельно: Android 9+ блокирует обычный http:// без него, а
+         сервер рассчитан на локальную сеть (решение владельца - LAN/демо,
+         не публичный интернет), не на TLS. Найдено зональным аудитом хаба
+         2026-09-08 (К-2), подтверждено по бинарному манифесту
+         app-release.apk (только android.permission.DUMP). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="mobile"
+        android:label="ОГЭ-Тьютор"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
