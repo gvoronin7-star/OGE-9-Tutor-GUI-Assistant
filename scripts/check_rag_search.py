@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Скрипт тестирования поиска по RAG_data_base.
+Ручной диагностический скрипт: проверяет поиск по RAG_data_base.
+
+ВНИМАНИЕ: не pytest-тест, а прямой прогон - делает настоящие вызовы
+к ProxyAPI. Раньше назывался test_rag_search.py и совпадал с паттерном
+сбора pytest ("test_*.py"); переименован зональным аудитом хаба
+2026-09-08 (Г-4 плана). См. decisions/decision-log.md.
 
 Использование:
-    python scripts/test_rag_search.py
+    python scripts/check_rag_search.py
 
-Тестирует:
+Проверяет:
 - Загрузку RAG_data_base
 - Поиск через ProxyAPI
 - Поиск через локальный Faiss

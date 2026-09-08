@@ -36,12 +36,11 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run tests
+      # Codecov-шаг раньше был без token: - Codecov отдавал ошибку в
+      # каждом иначе зелёном прогоне, отчёт никуда не публиковался с
+      # первого дня. Убран, а не снабжён токеном - секреты репозитория
+      # добавляет владелец, не эта сессия. --cov-report=xml убран вместе
+      # с ним - он был нужен только для загрузки в Codecov.
+      # Найдено зональным аудитом хаба 2026-09-08 (В-15 отчёта).
       run: |
-        pytest --cov=. --cov-report=xml --cov-report=term-missing
-
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
+        pytest --cov=. --cov-report=term-missing

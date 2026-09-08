@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Тестирование OpenAI text-embedding-3-small через ProxyAPI.
+Ручной диагностический скрипт: проверяет OpenAI text-embedding-3-small
+через ProxyAPI.
+
+ВНИМАНИЕ: не pytest-тест, а прямой прогон - делает настоящий платный
+вызов API, требует живого PROXY_API_KEY. Раньше лежал в корне репозитория
+как test_openai_embedding.py и совпадал с паттерном сбора pytest;
+переименован и перенесён зональным аудитом хаба 2026-09-08 (Г-4 плана).
+См. decisions/decision-log.md.
 
 Использование:
-    python test_openai_embedding.py
+    python scripts/check_openai_embedding.py
 """
 
 import asyncio
@@ -12,8 +19,12 @@ import os
 import sys
 from pathlib import Path
 
-# Добавляем путь к проекту
-sys.path.insert(0, str(Path(__file__).parent))
+# Добавляем путь к проекту - .parent.parent, не .parent: скрипт теперь
+# в scripts/, не в корне репозитория (переименован и перенесён
+# зональным аудитом хаба 2026-09-08 вместе с самим файлом; ничего из
+# api/utils отсюда пока не импортируется, но путь должен указывать
+# на корень репозитория, а не на scripts/ сам по себе).
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Загрузка .env
 from dotenv import load_dotenv

@@ -19,9 +19,16 @@ jobs:
         python-version: '3.11'
 
     - name: Install dependencies
+      # Версии black/isort/mypy берутся из requirements.txt, а не
+      # ставятся отдельно неопинненными - раньше пин отсутствовал, и
+      # разница версий (пример: black 24.1.1 локально/в манифесте
+      # против 26.5.1, реально ставившегося в CI на момент проверки)
+      # давала расхождение "проходит локально - красный CI" без
+      # изменений кода. Найдено зональным аудитом хаба 2026-09-08
+      # (В-15 отчёта).
       run: |
         python -m pip install --upgrade pip
-        pip install black isort mypy
+        pip install -r requirements.txt
 
     - name: Check with Black
       run: |

@@ -224,7 +224,7 @@ RAG_data_base/
 ## 🔍 Тестирование
 
 ```bash
-python scripts/test_rag_search.py
+python scripts/check_rag_search.py
 ```
 
 ## 📖 Полная документация
@@ -283,7 +283,7 @@ async def main():
     print("Следующие шаги:")
     print("1. Добавьте OPENAI_API_KEY в .env (опционально)")
     print("2. Запустите бота: python main.py")
-    print("3. Для тестирования: python scripts/test_rag_search.py")
+    print("3. Для тестирования: python scripts/check_rag_search.py")
     print()
     print("Документация:")
     print("  - RAG_INTEGRATION_GUIDE.md (кратко)")

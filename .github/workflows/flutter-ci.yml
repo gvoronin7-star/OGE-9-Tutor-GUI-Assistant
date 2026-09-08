@@ -21,6 +21,12 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          # channel: stable без flutter-version плавает во времени -
+          # "stable" сегодня и через полгода не одно и то же. Пин на
+          # версию, которой реально собирались и проверялись релизные
+          # APK (flutter --version на машине разработки, 2026-09-08).
+          # Найдено зональным аудитом хаба 2026-09-08 (В-15 отчёта).
+          flutter-version: '3.44.9'
           channel: stable
           cache: true
 

@@ -97,7 +97,9 @@
   диагностические скрипты**, не тесты: у обоих async `main()` +
   `if __name__ == "__main__":`, рассчитаны на прямой запуск, а не сбор
   pytest'ом. `test_openai_embedding.py` вдобавок требует живого
-  `PROXY_API_KEY`. `api/test_generator.py`/
+  `PROXY_API_KEY`. Переименован и перенесён 2026-09-08 (зональный аудит
+  хаба, Г-4 плана) в `scripts/check_openai_embedding.py` — имя больше
+  не совпадает с паттерном сбора pytest. `api/test_generator.py`/
   `gui_debugger/components/user/test_solver.py` — тоже не тесты:
   обычные классы (генератор вопросов, GUI-виджет), совпавшие с
   pytest-паттерном `test_*.py` только по имени файла.
