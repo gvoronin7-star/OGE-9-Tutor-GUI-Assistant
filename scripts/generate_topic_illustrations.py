@@ -56,7 +56,9 @@ POSITIONS_4 = [(150, 130), (850, 130), (150, 490), (850, 490)]
 POSITIONS_3 = [(500, 110), (170, 490), (830, 490)]
 
 
-def _fit_font(draw: ImageDraw.ImageDraw, lines: list[str], max_width: int, max_size: int) -> ImageFont.FreeTypeFont:
+def _fit_font(
+    draw: ImageDraw.ImageDraw, lines: list[str], max_width: int, max_size: int
+) -> ImageFont.FreeTypeFont:
     size = max_size
     while size > 12:
         font = ImageFont.truetype(FONT_PATH, size)
@@ -67,9 +69,19 @@ def _fit_font(draw: ImageDraw.ImageDraw, lines: list[str], max_width: int, max_s
     return ImageFont.truetype(FONT_PATH, 12)
 
 
-def _draw_centered_lines(draw: ImageDraw.ImageDraw, center: tuple[int, int], lines: list[str], max_width: int, max_size: int) -> None:
+def _draw_centered_lines(
+    draw: ImageDraw.ImageDraw,
+    center: tuple[int, int],
+    lines: list[str],
+    max_width: int,
+    max_size: int,
+) -> None:
     font = _fit_font(draw, lines, max_width, max_size)
-    line_heights = [draw.textbbox((0, 0), line, font=font)[3] - draw.textbbox((0, 0), line, font=font)[1] for line in lines]
+    line_heights = [
+        draw.textbbox((0, 0), line, font=font)[3]
+        - draw.textbbox((0, 0), line, font=font)[1]
+        for line in lines
+    ]
     spacing = 6
     total_h = sum(line_heights) + spacing * (len(lines) - 1)
     y = center[1] - total_h / 2
@@ -91,7 +103,12 @@ def build_diagram(hub_lines: list[str], satellites: list[list[str]]) -> Image.Im
 
     for pos in positions:
         draw.ellipse(
-            [pos[0] - SAT_RADIUS, pos[1] - SAT_RADIUS, pos[0] + SAT_RADIUS, pos[1] + SAT_RADIUS],
+            [
+                pos[0] - SAT_RADIUS,
+                pos[1] - SAT_RADIUS,
+                pos[0] + SAT_RADIUS,
+                pos[1] + SAT_RADIUS,
+            ],
             fill=SAT_COLOR,
         )
     draw.ellipse(
@@ -105,8 +122,12 @@ def build_diagram(hub_lines: list[str], satellites: list[list[str]]) -> Image.Im
     )
 
     for pos, lines in zip(positions, satellites):
-        _draw_centered_lines(draw, pos, lines, max_width=int(SAT_RADIUS * 1.7), max_size=34)
-    _draw_centered_lines(draw, HUB_CENTER, hub_lines, max_width=int(HUB_RADIUS * 1.7), max_size=38)
+        _draw_centered_lines(
+            draw, pos, lines, max_width=int(SAT_RADIUS * 1.7), max_size=34
+        )
+    _draw_centered_lines(
+        draw, HUB_CENTER, hub_lines, max_width=int(HUB_RADIUS * 1.7), max_size=38
+    )
 
     return canvas
 
@@ -122,7 +143,12 @@ def main() -> None:
 
     law = build_diagram(
         hub_lines=["Права", "человека"],
-        satellites=[["Гражданские"], ["Политические"], ["Экономические"], ["Социально-", "культурные"]],
+        satellites=[
+            ["Гражданские"],
+            ["Политические"],
+            ["Экономические"],
+            ["Социально-", "культурные"],
+        ],
     )
     law_path = OUTPUT_DIR / "human_rights_groups.png"
     law.save(law_path)
