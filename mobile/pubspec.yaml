@@ -71,6 +71,8 @@ flutter:
     - assets/models/rubert_tiny2.int8.onnx
     - assets/models/vocab.txt
     - assets/images/social_institutions.png
+    - assets/images/economic_cycle.png
+    - assets/images/human_rights_groups.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

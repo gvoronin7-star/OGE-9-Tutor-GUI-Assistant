@@ -176,6 +176,20 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
                     caption: 'Общество как система социальных институтов',
                   ),
                 ],
+                if (!showingRemote && topic.id == 'economy') ...[
+                  const SizedBox(height: 8),
+                  _TopicIllustration(
+                    assetPath: 'assets/images/economic_cycle.png',
+                    caption: 'Экономический цикл: производство, распределение, потребление',
+                  ),
+                ],
+                if (!showingRemote && topic.id == 'law') ...[
+                  const SizedBox(height: 8),
+                  _TopicIllustration(
+                    assetPath: 'assets/images/human_rights_groups.png',
+                    caption: 'Основные группы прав человека',
+                  ),
+                ],
                 const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: () => context.push('/tests/${topic.id}'),
