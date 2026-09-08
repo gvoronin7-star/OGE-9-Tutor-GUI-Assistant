@@ -10,7 +10,7 @@ REST-эндпоинты для мобильного клиента (Фаза 3 �
 decisions/2026-09-01_flutter-mobile-app-concept-plan.md, Фаза 3.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -46,8 +46,13 @@ class AskResponse(BaseModel):
 
 class GenerateTestRequest(BaseModel):
     topic: str
-    difficulty: str = "medium"
-    num_questions: int = 5
+    # Раньше был plain str: попадал без изменений в имя файла на запись
+    # (TestGenerator._save_test -> tests_dir / f"test_{topic}_{difficulty}.json")
+    # - {"difficulty": "../../x"} писал JSON за пределы data/tests/ через
+    # публичный, не аутентифицированный эндпоинт. Найдено зональным
+    # аудитом хаба 2026-09-08 (К-1).
+    difficulty: Literal["easy", "medium", "hard", "mixed"] = "medium"
+    num_questions: int = Field(default=5, ge=1, le=20)
 
 
 @router.get("/topics")

@@ -92,3 +92,22 @@ class TestGenerateTest:
     def test_400_for_unknown_topic(self, client):
         response = client.post("/api/tests/generate", json={"topic": "Астрология"})
         assert response.status_code == 400
+
+    def test_422_for_path_traversal_in_difficulty(self, client):
+        # difficulty раньше был plain str и без изменений становился
+        # частью имени файла на запись (test_id -> f"test_{topic}_{difficulty}.json") -
+        # найдено зональным аудитом хаба 2026-09-08 (К-1). Literal в схеме
+        # должен отклонять это на уровне валидации запроса, до вызова
+        # TestGenerator.
+        response = client.post(
+            "/api/tests/generate",
+            json={"topic": "Право", "difficulty": "../../x"},
+        )
+        assert response.status_code == 422
+
+    def test_422_for_num_questions_out_of_range(self, client):
+        response = client.post(
+            "/api/tests/generate",
+            json={"topic": "Право", "num_questions": 999},
+        )
+        assert response.status_code == 422

@@ -18,6 +18,15 @@ from api.rag_pipeline import RAGPipeline
 
 logger = logging.getLogger(__name__)
 
+# Проверенные значения сложности - см. difficulty_params ниже, плюс
+# "mixed" (используется generate_all_topics_test). difficulty становится
+# частью имени файла на запись (test_id ниже) - без этой проверки
+# значение, пришедшее не через мобильный API (который валидирует его
+# отдельно, pydantic Literal в api/mobile_routes.py), давало бы path
+# traversal через сам генератор. Найдено зональным аудитом хаба
+# 2026-09-08 (К-1).
+DIFFICULTY_LEVELS = ("easy", "medium", "hard", "mixed")
+
 
 class TestGenerator:
     """
@@ -75,6 +84,12 @@ class TestGenerator:
         Returns:
             Dict[str, Any]: Сгенерированный тест
         """
+        if difficulty not in DIFFICULTY_LEVELS:
+            raise ValueError(
+                f"Недопустимая сложность: {difficulty!r}. "
+                f"Ожидалось одно из {DIFFICULTY_LEVELS}."
+            )
+
         logger.info(f"Генерация теста по теме '{topic}', сложность: {difficulty}")
 
         # Получение материала по теме
