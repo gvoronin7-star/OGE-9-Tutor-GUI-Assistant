@@ -44,11 +44,13 @@ Thumbs.db
 # Логи
 logs/*.log
 logs/*.json
+logs/*.csv
 
 # Данные
 data/chunks/*.md
 data/indices/*.index
 data/indices/*.json
+data/tests/*.json
 
 # Тесты
 .pytest_cache/
