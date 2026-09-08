@@ -51,20 +51,49 @@ class TestRAGPipeline:
 
     @pytest.mark.asyncio
     async def test_initialize(self, rag_pipeline, temp_dir):
-        """Тест инициализации RAG-пайплайна."""
-        # Мок векторного хранилища и текстового поиска
-        with patch.object(rag_pipeline, "vector_store") as mock_vs, patch.object(
-            rag_pipeline, "text_search"
-        ) as mock_ts, patch.object(rag_pipeline, "llm_client") as mock_llm:
+        """
+        Тест инициализации RAG-пайплайна.
 
-            mock_vs.load = AsyncMock()
-            mock_vs.initialize = AsyncMock()
-            mock_ts.load = AsyncMock()
-            mock_ts.initialize = AsyncMock()
-            mock_llm.initialize = AsyncMock()
+        Раньше мокался атрибут экземпляра (patch.object(rag_pipeline,
+        "vector_store")), но initialize() первым делом делает
+        self.vector_store = VectorStore(self.indices_dir) - реальный
+        конструктор и реальный load()/initialize(), стирая мок до того,
+        как он мог на что-то повлиять. VectorStore тянет
+        sentence-transformers (rubert-tiny2) - реальный сетевой поход в
+        HuggingFace Hub при каждом прогоне этого теста. Патчим классы на
+        уровне модуля (api.rag_pipeline.VectorStore и т.д. - именно так
+        initialize() их резолвит, через `from ... import` в этом же
+        модуле), а не атрибуты уже созданного экземпляра. Найдено
+        зональным аудитом хаба 2026-09-08 (В-7 отчёта).
+        """
+        mock_vs = Mock()
+        mock_vs.load = AsyncMock()
+        mock_vs.initialize = AsyncMock()
+        mock_ts = Mock()
+        mock_ts.load = AsyncMock()
+        mock_ts.initialize = AsyncMock()
+        mock_llm = Mock()
+        mock_llm.initialize = AsyncMock()
+
+        with patch(
+            "api.rag_pipeline.VectorStore", return_value=mock_vs
+        ) as mock_vs_cls, patch(
+            "api.rag_pipeline.TextSearchEngine", return_value=mock_ts
+        ) as mock_ts_cls, patch(
+            "api.rag_pipeline.LLMClient", return_value=mock_llm
+        ) as mock_llm_cls:
 
             await rag_pipeline.initialize()
 
+            mock_vs_cls.assert_called_once_with(rag_pipeline.indices_dir)
+            mock_ts_cls.assert_called_once_with(rag_pipeline.indices_dir)
+            mock_llm_cls.assert_called_once_with(rag_pipeline.cache_manager)
+            mock_vs.load.assert_awaited_once()
+            mock_ts.load.assert_awaited_once()
+            mock_llm.initialize.assert_awaited_once()
+            assert rag_pipeline.vector_store is mock_vs
+            assert rag_pipeline.text_search is mock_ts
+            assert rag_pipeline.llm_client is mock_llm
             assert rag_pipeline.cache_manager is not None
 
     @pytest.mark.asyncio
@@ -208,18 +237,58 @@ class TestCacheManager:
 
     @pytest.mark.asyncio
     async def test_get_ttl_category_top(self):
-        """Тест определения TTL для частых запросов."""
+        """
+        Тест определения TTL для частых запросов.
+
+        Раньше мок get_top_queries возвращал буквальное [12345], не
+        имеющее отношения к хэшу реального запроса - категория не могла
+        оказаться ничем, кроме "rare", а assert проверял членство в
+        полном списке всех трёх возможных значений (истинно всегда,
+        независимо от поведения кода). Найдено зональным аудитом хаба
+        2026-09-08 (В-8 отчёта, "тавтологичные тесты").
+        """
         from utils.cache import CacheManager
+        from utils.hashing import stable_query_hash
 
         manager = CacheManager()
         manager.query_stats = Mock()
-        manager.query_stats.get_top_queries = Mock(return_value=[12345])
+        query_hash = stable_query_hash("тестовый запрос")
+        manager.query_stats.get_top_queries = Mock(return_value=[query_hash])
         manager.query_stats.get_medium_queries = Mock(return_value=[])
 
         category = manager._get_ttl_category("тестовый запрос")
 
-        # Запрос не в топе, поэтому rare
-        assert category in ["top", "medium", "rare"]
+        assert category == "top"
+
+    @pytest.mark.asyncio
+    async def test_get_ttl_category_medium(self):
+        """Хэш в medium-списке, но не в top -> категория medium."""
+        from utils.cache import CacheManager
+        from utils.hashing import stable_query_hash
+
+        manager = CacheManager()
+        manager.query_stats = Mock()
+        query_hash = stable_query_hash("тестовый запрос")
+        manager.query_stats.get_top_queries = Mock(return_value=[])
+        manager.query_stats.get_medium_queries = Mock(return_value=[query_hash])
+
+        category = manager._get_ttl_category("тестовый запрос")
+
+        assert category == "medium"
+
+    @pytest.mark.asyncio
+    async def test_get_ttl_category_rare(self):
+        """Хэш не найден ни в top, ни в medium -> категория rare."""
+        from utils.cache import CacheManager
+
+        manager = CacheManager()
+        manager.query_stats = Mock()
+        manager.query_stats.get_top_queries = Mock(return_value=[])
+        manager.query_stats.get_medium_queries = Mock(return_value=[])
+
+        category = manager._get_ttl_category("никогда не виденный запрос")
+
+        assert category == "rare"
 
 
 if __name__ == "__main__":
