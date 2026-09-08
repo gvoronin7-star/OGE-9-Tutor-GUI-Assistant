@@ -75,6 +75,16 @@ class UsersPanel(ttk.Frame):
         header = ttk.Label(self, text="👥 ПОЛЬЗОВАТЕЛИ", font=("Segoe UI", 14, "bold"))
         header.pack(pady=10)
 
+        # Демонстрационная панель - список пользователей ниже захардкожен
+        # (_get_demo_users), не подключён ни к бэкенду, ни к реальной базе.
+        # Найдено зональным аудитом хаба 2026-09-08 (К-3).
+        mockup_notice = ttk.Label(
+            self,
+            text="Демонстрационная панель: данные не подключены к бэкенду",
+            foreground="#ffb900",
+        )
+        mockup_notice.pack(pady=(0, 10))
+
         # Фильтры
         filters_frame = ttk.Frame(self)
         filters_frame.pack(fill=tk.X, padx=20, pady=10)
@@ -273,17 +283,27 @@ class UsersPanel(ttk.Frame):
             messagebox.showwarning("Предупреждение", "Выберите пользователя из списка")
             return
 
-        action = "заблокировать" if self.selected_user["active"] else "разблокировать"
+        # f"{action}ён" давало "Пользователь заблокироватьён" - глагол
+        # "заблокировать" в инфинитиве, не причастие. Отдельный словарь
+        # вместо конкатенации суффикса. Найдено зональным аудитом хаба
+        # 2026-09-08 (К-3).
+        action_infinitive = (
+            "заблокировать" if self.selected_user["active"] else "разблокировать"
+        )
+        action_participle = (
+            "заблокирован" if self.selected_user["active"] else "разблокирован"
+        )
 
         if messagebox.askyesno(
             "Подтверждение",
-            f"Вы уверены, что хотите {action} пользователя {self.selected_user['user_id']}?",
+            f"Вы уверены, что хотите {action_infinitive} пользователя "
+            f"{self.selected_user['user_id']}?",
         ):
             self.selected_user["active"] = not self.selected_user["active"]
             self._populate_users()
             self._filter_users()
 
-            messagebox.showinfo("Успешно", f"Пользователь {action}ён")
+            messagebox.showinfo("Успешно", f"Пользователь {action_participle}")
 
     def _send_message(self) -> None:
         """Отправка сообщения."""

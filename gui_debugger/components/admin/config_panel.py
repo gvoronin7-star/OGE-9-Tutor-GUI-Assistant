@@ -36,6 +36,17 @@ class ConfigPanel(ttk.Frame):
         header = ttk.Label(self, text="⚙️ КОНФИГУРАЦИЯ", font=("Segoe UI", 14, "bold"))
         header.pack(pady=10)
 
+        # Демонстрационная панель - сохраняет в gui_debugger/config.json,
+        # единственный читатель которого - сама эта панель; бэкенд берёт
+        # настройки из .env/переменных окружения напрямую. Найдено
+        # зональным аудитом хаба 2026-09-08 (К-3).
+        mockup_notice = ttk.Label(
+            self,
+            text="Демонстрационная панель: данные не подключены к бэкенду",
+            foreground="#ffb900",
+        )
+        mockup_notice.pack(pady=(0, 10))
+
         # Вкладки настроек
         notebook = ttk.Notebook(self)
         notebook.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
@@ -144,11 +155,17 @@ class ConfigPanel(ttk.Frame):
         ttk.Label(tab, text="Основная модель:", font=("Segoe UI", 10)).pack(
             anchor=tk.W, pady=5
         )
-        self.model_var = tk.StringVar(value="GigaChat-Max")
+        # Реальная модель бэкенда захардкожена в api/llm_client.py, не
+        # читается отсюда - см. баннер "макет" выше. Значения по умолчанию
+        # приведены в соответствие с ней (была витрина GigaChat/YandexGPT,
+        # оставшаяся от давно снятого провайдера - CHANGELOG зафиксировал
+        # переход на GPT-4o-mini ещё в v2.0). Найдено зональным аудитом
+        # хаба 2026-09-08 (В-2 отчёта).
+        self.model_var = tk.StringVar(value="gpt-4o-mini")
         model_combo = ttk.Combobox(
             tab,
             textvariable=self.model_var,
-            values=["GigaChat-Max", "GigaChat-Pro", "YandexGPT-Lite"],
+            values=["gpt-4o-mini"],
             state="readonly",
             width=30,
         )
@@ -181,7 +198,7 @@ class ConfigPanel(ttk.Frame):
         ttk.Label(tab, text="ProxyAPI URL:", font=("Segoe UI", 10)).pack(
             anchor=tk.W, pady=5
         )
-        self.proxy_url_var = tk.StringVar(value="https://api.proxyapi.ru/gigachat")
+        self.proxy_url_var = tk.StringVar(value="https://api.proxyapi.ru/v1")
         proxy_entry = ttk.Entry(tab, textvariable=self.proxy_url_var, width=50)
         proxy_entry.pack(anchor=tk.W, pady=5)
 
@@ -314,7 +331,9 @@ class ConfigPanel(ttk.Frame):
             json.dump(config, f, indent=2, ensure_ascii=False)
 
         messagebox.showinfo(
-            "Сохранение", f"Конфигурация сохранена в {self.config_file}"
+            "Сохранение",
+            f"Конфигурация сохранена в {self.config_file} "
+            "(демонстрационная панель - бэкенд эти настройки не читает)",
         )
 
     def _reset_config(self) -> None:
@@ -324,7 +343,7 @@ class ConfigPanel(ttk.Frame):
         ):
             self.top_k_var.set("5")
             self.threshold_var.set("0.5")
-            self.model_var.set("GigaChat-Max")
+            self.model_var.set("gpt-4o-mini")
             self.timeout_var.set("30")
             self.retries_var.set("3")
             self.ttl_top_var.set("24")

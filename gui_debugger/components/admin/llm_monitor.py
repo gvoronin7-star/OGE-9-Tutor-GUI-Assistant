@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Мониторинг LLM.
+Мониторинг LLM - демонстрационная панель.
 
-Статус GigaChat, лимиты, ошибки.
+Ничего на этой вкладке не делает настоящий сетевой запрос:
+_refresh_status показывает захардкоженные цифры и лог, _test_connection
+сообщает об успехе без обращения к сети. Реальный LLM-клиент бэкенда
+(api/llm_client.py) сюда не подключён (см. вызов LLMMonitor(notebook,
+None) в admin_mode.py). Найдено зональным аудитом хаба 2026-09-08 (К-3).
 """
 
 import tkinter as tk
@@ -36,6 +40,13 @@ class LLMMonitor(ttk.Frame):
         )
         header.pack(pady=10)
 
+        mockup_notice = ttk.Label(
+            self,
+            text="Демонстрационная панель: данные не подключены к бэкенду",
+            foreground="#ffb900",
+        )
+        mockup_notice.pack(pady=(0, 10))
+
         # Статус соединения
         status_frame = ttk.LabelFrame(self, text="Статус соединения", padding=15)
         status_frame.pack(fill=tk.X, padx=20, pady=10)
@@ -50,7 +61,7 @@ class LLMMonitor(ttk.Frame):
 
         self.status_details = ttk.Label(
             status_frame,
-            text="GigaChat-Max через ProxyAPI",
+            text="gpt-4o-mini через ProxyAPI",
             font=("Segoe UI", 10),
             foreground="#808080",
         )
@@ -152,9 +163,9 @@ class LLMMonitor(ttk.Frame):
 
     def _refresh_status(self) -> None:
         """Обновление статуса."""
-        # Демо-данные (в реальной версии — запрос к API)
+        # Демо-данные - ничего из этого не читает реальный LLM-клиент.
         self.status_indicator.configure(
-            text="● GigaChat-Max (онлайн)", foreground="#107c10"
+            text="● Демо-данные (не подключено к бэкенду)", foreground="#808080"
         )
 
         # Лимиты
@@ -188,18 +199,12 @@ class LLMMonitor(ttk.Frame):
         self.errors_text.configure(state=tk.DISABLED)
 
     def _test_connection(self) -> None:
-        """Тест соединения."""
-        self.status_indicator.configure(text="⏳ Тестирование...", foreground="#ffb900")
-
-        # В реальной версии — тестовый запрос к LLM
-        self.after(
-            2000,
-            lambda: self.status_indicator.configure(
-                text="● GigaChat-Max (онлайн)", foreground="#107c10"
-            ),
+        """Тест соединения - не реализован, панель демонстрационная."""
+        messagebox.showinfo(
+            "Тест соединения",
+            "Проверка соединения не реализована - эта вкладка демонстрационная "
+            "и не подключена к реальному LLM-клиенту.",
         )
-
-        messagebox.showinfo("Тест", "Соединение с GigaChat установлено успешно!")
 
     def _clear_logs(self) -> None:
         """Очистка логов ошибок."""

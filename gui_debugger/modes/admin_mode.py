@@ -88,23 +88,23 @@ class AdminMode(ttk.Frame):
         self.cache_manager_panel = CacheManager(notebook, self.cache_manager)
         notebook.add(self.cache_manager_panel, text="  💾 Cache  ")
 
-        # Вкладка 7: LLM (новая)
+        # Вкладка 7: LLM (новая) - МАКЕТ, см. gui_debugger/components/admin/llm_monitor.py
         from gui_debugger.components.admin import LLMMonitor
 
         self.llm_monitor = LLMMonitor(notebook, None)
-        notebook.add(self.llm_monitor, text="  🤖 LLM  ")
+        notebook.add(self.llm_monitor, text="  🤖 LLM (макет)  ")
 
-        # Вкладка 8: Config (новая)
+        # Вкладка 8: Config (новая) - МАКЕТ, см. gui_debugger/components/admin/config_panel.py
         from gui_debugger.components.admin import ConfigPanel
 
         self.config_panel = ConfigPanel(notebook)
-        notebook.add(self.config_panel, text="  ⚙️ Config  ")
+        notebook.add(self.config_panel, text="  ⚙️ Config (макет)  ")
 
-        # Вкладка 9: Users (новая)
+        # Вкладка 9: Users (новая) - МАКЕТ, см. gui_debugger/components/admin/users_panel.py
         from gui_debugger.components.admin import UsersPanel
 
         self.users_panel = UsersPanel(notebook)
-        notebook.add(self.users_panel, text="  👥 Users  ")
+        notebook.add(self.users_panel, text="  👥 Users (макет)  ")
 
         # Вкладка 10: RAG Database (новая)
         from gui_debugger.components.admin import RAGManager
