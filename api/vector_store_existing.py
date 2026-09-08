@@ -195,7 +195,7 @@ class ExistingVectorStore:
             import aiohttp
 
             # Используем ProxyAPI вместо OpenAI
-            base_url = os.getenv("OPENAI_BASE_URL", "https://api.proxyapi.ru/openai/v1")
+            base_url = os.getenv("OPENAI_BASE_URL", "https://api.proxyapi.ru/v1")
             api_key = os.getenv("OPENAI_API_KEY") or os.getenv("PROXY_API_KEY")
 
             if not api_key:

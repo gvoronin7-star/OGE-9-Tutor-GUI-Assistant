@@ -78,7 +78,7 @@ cp .env.example .env
 | Переменная | Описание | Пример |
 |------------|----------|--------|
 | `PROXY_API_KEY` | API-ключ для LLM (GPT-4o-mini через ProxyAPI) | `your_key_here` |
-| `PROXY_API_URL` | URL ProxyAPI | `https://proxyapi.ru/openai` |
+| `PROXY_API_URL` | URL ProxyAPI (единый адрес с 07.09.2026) | `https://api.proxyapi.ru/v1` |
 | `REDIS_HOST` | Хост Redis (опционально) | `localhost` |
 | `REDIS_PORT` | Порт Redis (опционально) | `6379` |
 | `LOG_LEVEL` | Уровень логирования (FastAPI backend) | `INFO` |
@@ -90,7 +90,7 @@ cp .env.example .env
 |------------|----------|--------|
 | `USE_EXISTING_INDEX` | Включить `ExistingVectorStore` (157 чанков ФИПИ) вместо пустого локального индекса | `true` |
 | `OPENAI_API_KEY` | Ключ для эмбеддингов `text-embedding-3-small` на пути `USE_EXISTING_INDEX=true` (falls back на `PROXY_API_KEY`, если не задан) | `sk-...` |
-| `OPENAI_BASE_URL` | Базовый URL для запроса эмбеддингов | `https://api.proxyapi.ru/openai/v1` |
+| `OPENAI_BASE_URL` | Базовый URL для запроса эмбеддингов | `https://api.proxyapi.ru/v1` |
 
 ### 2. Настройка Redis (опционально)
 

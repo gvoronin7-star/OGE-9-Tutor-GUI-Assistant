@@ -61,7 +61,7 @@ class LLMClient:
             cache_manager: Менеджер кэширования
         """
         self.cache_manager = cache_manager
-        self.api_url = os.getenv("PROXY_API_URL", "https://api.proxyapi.ru/openai/v1")
+        self.api_url = os.getenv("PROXY_API_URL", "https://api.proxyapi.ru/v1")
         self.api_key = os.getenv("PROXY_API_KEY", "")
         self.primary_model = "gpt-4o-mini"
         self.fallback_model = "gpt-4o-mini"

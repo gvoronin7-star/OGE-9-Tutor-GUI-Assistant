@@ -30,11 +30,10 @@ async def test_embedding_api():
     print()
 
     # Конфигурация
-    api_url = os.getenv("PROXY_API_URL", "https://proxyapi.ru/gigachat")
+    api_url = os.getenv("PROXY_API_URL", "https://api.proxyapi.ru/v1")
     api_key = os.getenv("PROXY_API_KEY", "")
 
-    # Для эмбеддингов нужен другой endpoint
-    embedding_url = "https://api.proxyapi.ru/openai/v1/embeddings"
+    embedding_url = "https://api.proxyapi.ru/v1/embeddings"
 
     print(f"ProxyAPI URL: {api_url}")
     print(f"Embedding URL: {embedding_url}")
