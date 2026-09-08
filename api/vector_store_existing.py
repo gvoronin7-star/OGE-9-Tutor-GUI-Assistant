@@ -209,7 +209,12 @@ class ExistingVectorStore:
             }
             payload = {"model": "text-embedding-3-small", "input": text}
 
-            async with aiohttp.ClientSession() as session:
+            # Без явного таймаута aiohttp.ClientSession() использует
+            # дефолт 5 минут - LLM-клиент рядом (api/llm_client.py)
+            # ограничен 30 с, здесь такого ограничения не было вообще.
+            # Найдено зональным аудитом хаба 2026-09-08 (В-10 отчёта).
+            timeout = aiohttp.ClientTimeout(total=30)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.post(url, headers=headers, json=payload) as resp:
                     if resp.status == 200:
                         data = await resp.json()

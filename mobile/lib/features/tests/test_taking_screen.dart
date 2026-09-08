@@ -28,6 +28,13 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
 
   List<Question>? _questions;
   String? _loadError;
+  // Отдельно от _loadError (тот - "сервер недоступен, показан локальный
+  // банк", не фатально): любое необработанное исключение при загрузке
+  // (несуществующий topicId - роутер принимает любой; сбой локального
+  // провайдера) раньше оставляло экран в CircularProgressIndicator
+  // навсегда, без AppBar и без выхода. Найдено зональным аудитом хаба
+  // 2026-09-08 (В-3 отчёта).
+  String? _fatalError;
 
   @override
   void initState() {
@@ -39,36 +46,45 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
   }
 
   Future<void> _loadQuestions() async {
-    final topics = await ref.read(topicsProvider.future);
-    final topic = topics.firstWhere((t) => t.id == widget.topicId);
+    try {
+      final topics = await ref.read(topicsProvider.future);
+      final topic = topics.firstWhere(
+        (t) => t.id == widget.topicId,
+        orElse: () =>
+            throw StateError('Тема "${widget.topicId}" не найдена'),
+      );
 
-    if (ref.read(serverModeEnabledProvider)) {
-      try {
-        final testData = await ref
-            .read(apiClientProvider)
-            .generateTest(topic.title);
-        final questions = _parseServerQuestions(
-          testData,
-          topic.id,
-          topic.title,
-        );
-        if (!mounted) return;
-        setState(() => _questions = questions);
-        return;
-      } catch (_) {
-        if (!mounted) return;
-        setState(
-          () => _loadError =
-              'Сервер недоступен - используется локальный банк вопросов.',
-        );
+      if (ref.read(serverModeEnabledProvider)) {
+        try {
+          final testData = await ref
+              .read(apiClientProvider)
+              .generateTest(topic.title);
+          final questions = _parseServerQuestions(
+            testData,
+            topic.id,
+            topic.title,
+          );
+          if (!mounted) return;
+          setState(() => _questions = questions);
+          return;
+        } catch (_) {
+          if (!mounted) return;
+          setState(
+            () => _loadError =
+                'Сервер недоступен - используется локальный банк вопросов.',
+          );
+        }
       }
-    }
 
-    final local = await ref.read(
-      questionsByTopicProvider(widget.topicId).future,
-    );
-    if (!mounted) return;
-    setState(() => _questions = local);
+      final local = await ref.read(
+        questionsByTopicProvider(widget.topicId).future,
+      );
+      if (!mounted) return;
+      setState(() => _questions = local);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _fatalError = 'Не удалось загрузить тест: $e');
+    }
   }
 
   List<Question> _parseServerQuestions(
@@ -108,13 +124,39 @@ class _TestTakingScreenState extends ConsumerState<TestTakingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_fatalError != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Ошибка')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_fatalError!, textAlign: TextAlign.center),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () => context.go('/tests'),
+                  child: const Text('К списку тестов'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final questions = _questions;
     if (questions == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(title: const Text('Загрузка теста...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
     if (questions.isEmpty) {
-      return const Scaffold(
-        body: Center(child: Text('Для этой темы пока нет вопросов')),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Тест')),
+        body: const Center(child: Text('Для этой темы пока нет вопросов')),
       );
     }
 

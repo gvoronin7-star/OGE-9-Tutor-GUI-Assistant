@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/models.dart';
 import '../../core/providers.dart';
 
 // Совпадает с началом абзаца вида "Термин — определение" (частый паттерн
@@ -124,7 +125,24 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (err, _) => Scaffold(body: Center(child: Text('Ошибка: $err'))),
       data: (topics) {
-        final topic = topics.firstWhere((t) => t.id == widget.topicId);
+        // Роутер принимает любой topicId в пути - firstWhere без orElse
+        // раньше бросал StateError прямо во время build() на несуществующей
+        // теме (не async-путь, но всё равно необработанное исключение,
+        // не понятное пользователю сообщение). Найдено зональным аудитом
+        // хаба 2026-09-08 (В-3 отчёта).
+        final matches = topics.where((t) => t.id == widget.topicId);
+        if (matches.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Тема не найдена')),
+            body: Center(
+              child: Text('Тема "${widget.topicId}" не найдена'),
+            ),
+          );
+        }
+        // final (не var) - иначе анализатор не продвигает тип сквозь
+        // замыкание addPostFrameCallback ниже, которое захватывает
+        // переменную, а не её значение в момент вызова.
+        final Topic topic = matches.first;
 
         if (serverModeEnabled &&
             _remoteArticle == null &&
