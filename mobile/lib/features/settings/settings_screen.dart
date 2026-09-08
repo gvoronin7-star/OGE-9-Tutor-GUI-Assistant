@@ -127,10 +127,19 @@ class _ConnectionIndicator extends StatelessWidget {
       case _ConnectionState.unknown:
         return const SizedBox.shrink();
       case _ConnectionState.checking:
-        return const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
+        return const Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Проверка — может занять до нескольких секунд',
+              style: TextStyle(fontSize: 12.5, color: Colors.grey),
+            ),
+          ],
         );
       case _ConnectionState.ok:
         return const Row(

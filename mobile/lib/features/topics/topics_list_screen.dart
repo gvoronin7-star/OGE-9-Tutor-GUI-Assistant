@@ -104,35 +104,40 @@ class _SubjectRow extends StatelessWidget {
             labelStyle: TextStyle(color: scheme.onPrimary),
             side: BorderSide.none,
           ),
-          Tooltip(
-            message: 'Скоро будет доступно',
-            child: Chip(
-              avatar: Icon(
-                Icons.schedule,
-                size: 18,
-                color: scheme.onSurfaceVariant,
-              ),
-              label: const Text('Другие предметы'),
-              backgroundColor: scheme.surfaceContainerHighest,
-              labelStyle: TextStyle(color: scheme.onSurfaceVariant),
-              side: BorderSide.none,
-            ),
-          ),
-          Tooltip(
-            message: 'Скоро будет доступно',
-            child: Chip(
-              avatar: Icon(
-                Icons.schedule,
-                size: 18,
-                color: scheme.onSurfaceVariant,
-              ),
-              label: const Text('ЕГЭ'),
-              backgroundColor: scheme.surfaceContainerHighest,
-              labelStyle: TextStyle(color: scheme.onSurfaceVariant),
-              side: BorderSide.none,
-            ),
-          ),
+          _ComingSoonChip(label: 'Другие предметы', scheme: scheme),
+          _ComingSoonChip(label: 'ЕГЭ', scheme: scheme),
         ],
+      ),
+    );
+  }
+}
+
+/// Плашка "скоро будет доступно" - `Tooltip` сам по себе реагирует
+/// только на долгое нажатие/наведение, а не на обычный тап, поэтому
+/// оборачиваем в `InkWell` с явным снекбаром, чтобы тап давал видимый
+/// отклик и на телефоне.
+class _ComingSoonChip extends StatelessWidget {
+  final String label;
+  final ColorScheme scheme;
+
+  const _ComingSoonChip({required this.label, required this.scheme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Скоро будет доступно',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Скоро будет доступно')),
+        ),
+        child: Chip(
+          avatar: Icon(Icons.schedule, size: 18, color: scheme.onSurfaceVariant),
+          label: Text(label),
+          backgroundColor: scheme.surfaceContainerHighest,
+          labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+          side: BorderSide.none,
+        ),
       ),
     );
   }

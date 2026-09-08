@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 
 class ApiClient {
@@ -13,11 +15,28 @@ class ApiClient {
         ),
       );
 
+  /// На некоторых устройствах первое обращение к недоступному локальному
+  /// адресу (ARP-резолюция несуществующего хоста) блокирует TCP-connect
+  /// на уровне ОС дольше, чем заявленный [BaseOptions.connectTimeout] -
+  /// Dio его в этом случае не соблюдает. Внешний [Future.timeout] с
+  /// отменой запроса через [CancelToken] даёт жёсткую верхнюю границу
+  /// независимо от поведения ОС.
   Future<bool> checkHealth() async {
+    final cancelToken = CancelToken();
     try {
-      final response = await _dio.get('/health');
+      final response = await _dio
+          .get('/health', cancelToken: cancelToken)
+          .timeout(
+            const Duration(seconds: 6),
+            onTimeout: () {
+              cancelToken.cancel('health check timed out');
+              throw TimeoutException('health check timed out');
+            },
+          );
       return response.statusCode == 200;
     } on DioException {
+      return false;
+    } on TimeoutException {
       return false;
     }
   }
