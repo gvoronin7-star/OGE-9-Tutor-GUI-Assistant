@@ -1,42 +1,34 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 
 class ApiClient {
   final String baseUrl;
   final Dio _dio;
 
+  /// `BaseOptions.baseUrl=` парсит значение через `Uri.parse` сразу же,
+  /// в конструкторе - без схемы («192.168.1.10:8000», ровно то, что
+  /// подсказка над полем в `settings_screen.dart` показывает без
+  /// примера «http://») текст до первого `:` читается как схема URI,
+  /// схема не может начинаться с цифры - `Uri.parse` кидает
+  /// `FormatException` синхронно, до того как выполнится хоть одна
+  /// строка `checkHealth()`. Раньше это стреляло необработанным
+  /// исключением наружу из `_checkConnection()`/`_saveUrl()`
+  /// (оборачивающих его не было) и насовсем оставляло экран в
+  /// состоянии «проверяю» - выглядело как зависшая сетевая проверка,
+  /// хотя сеть тут ни при чём.
   ApiClient(this.baseUrl)
     : _dio = Dio(
         BaseOptions(
-          baseUrl: baseUrl,
+          baseUrl: baseUrl.contains('://') ? baseUrl : 'http://$baseUrl',
           connectTimeout: const Duration(seconds: 5),
           receiveTimeout: const Duration(seconds: 30),
         ),
       );
 
-  /// На некоторых устройствах первое обращение к недоступному локальному
-  /// адресу (ARP-резолюция несуществующего хоста) блокирует TCP-connect
-  /// на уровне ОС дольше, чем заявленный [BaseOptions.connectTimeout] -
-  /// Dio его в этом случае не соблюдает. Внешний [Future.timeout] с
-  /// отменой запроса через [CancelToken] даёт жёсткую верхнюю границу
-  /// независимо от поведения ОС.
   Future<bool> checkHealth() async {
-    final cancelToken = CancelToken();
     try {
-      final response = await _dio
-          .get('/health', cancelToken: cancelToken)
-          .timeout(
-            const Duration(seconds: 6),
-            onTimeout: () {
-              cancelToken.cancel('health check timed out');
-              throw TimeoutException('health check timed out');
-            },
-          );
+      final response = await _dio.get('/health');
       return response.statusCode == 200;
     } on DioException {
-      return false;
-    } on TimeoutException {
       return false;
     }
   }

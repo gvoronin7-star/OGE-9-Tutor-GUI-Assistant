@@ -31,7 +31,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _checkConnection() async {
     setState(() => _connection = _ConnectionState.checking);
-    final ok = await ApiClient(_urlController.text.trim()).checkHealth();
+    // Любая ошибка (включая некорректный формат адреса) должна
+    // приводить к «недоступен», а не оставлять экран в «проверяю»
+    // навсегда - раньше необработанное исключение из ApiClient именно
+    // так и происходило.
+    var ok = false;
+    try {
+      ok = await ApiClient(_urlController.text.trim()).checkHealth();
+    } catch (_) {
+      ok = false;
+    }
     if (!mounted) return;
     setState(
       () => _connection = ok ? _ConnectionState.ok : _ConnectionState.failed,
