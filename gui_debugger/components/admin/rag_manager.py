@@ -9,7 +9,9 @@
 - Просмотреть статистику
 """
 
+import json
 import logging
+import os
 import shutil
 import threading
 import tkinter as tk
@@ -20,6 +22,33 @@ from typing import Any, Callable, Optional, cast
 from gui_debugger.utils.gui_logger import log_action, log_error
 
 logger = logging.getLogger(__name__)
+
+# Реальный загрузчик (api/vector_store_existing.py::ExistingVectorStore)
+# читает RAG_data_base/vector_db/{dataset.json,index.faiss,metadata.json} -
+# эта панель раньше проверяла и показывала совсем другую, никогда не
+# читаемую структуру (chunks/*.md, metadata/*.json, indices/*), из-за
+# чего реальная база на 157 чанков показывалась как "Статус: Пустая", а
+# "валидная" по чек-листу панели папка всё равно не подошла бы
+# загрузчику. Найдено зональным аудитом хаба 2026-09-08 (К-7).
+REQUIRED_VECTOR_DB_FILES = ("dataset.json", "index.faiss", "metadata.json")
+
+
+def _vector_db_chunk_count(base_path: Path) -> Optional[int]:
+    """Число чанков в base_path/vector_db/dataset.json, None если не читается."""
+    dataset_file = base_path / "vector_db" / "dataset.json"
+    try:
+        with open(dataset_file, "r", encoding="utf-8") as f:
+            return len(json.load(f))
+    except (OSError, json.JSONDecodeError, TypeError):
+        return None
+
+
+def _missing_vector_db_files(base_path: Path) -> list[str]:
+    """Список отсутствующих файлов vector_db/ внутри base_path."""
+    vector_db = base_path / "vector_db"
+    return [
+        name for name in REQUIRED_VECTOR_DB_FILES if not (vector_db / name).exists()
+    ]
 
 
 class RAGManager(ttk.Frame):
@@ -177,15 +206,19 @@ class RAGManager(ttk.Frame):
             tk.END,
             """Операция замены базы данных:
 
-1. Нажмите "📁 Обзор..." и выберите папку с новой базой RAG
-2. Убедитесь, что папка содержит подпапки: chunks/, metadata/, indices/
-3. Нажмите "✓ Проверить базу" для валидации
-4. Нажмите "🔄 Заменить базу" для замены
-5. Дождитесь завершения операции
+1. Нажмите "📁 Обзор..." и выберите папку с новой базой RAG - она
+   должна содержать подпапку vector_db/ с файлами dataset.json,
+   index.faiss и metadata.json (формат, который реально использует
+   бэкенд)
+2. Нажмите "✓ Проверить базу" для валидации
+3. Нажмите "🔄 Заменить базу" для замены
+4. Дождитесь завершения операции
 
 ВНИМАНИЕ:
-- Старая база будет удалена без возможности восстановления
-- Рекомендуется создать резервную копию текущей базы
+- Новая база сначала копируется и проверяется во временном каталоге;
+  текущая база не удаляется, а переименовывается в RAG_data_base_backup/
+  и остаётся на диске
+- Замена вступит в силу только при USE_EXISTING_INDEX=true в .env
 - Операция может занять несколько минут
 - Во время загрузки не закрывайте приложение
 """,
@@ -217,22 +250,29 @@ class RAGManager(ttk.Frame):
             )
             return
 
-        # Проверка структуры
-        required_folders = ["chunks", "metadata", "indices"]
-        missing = [f for f in required_folders if not (self.new_base_path / f).exists()]
+        # Проверка структуры - vector_db/{dataset.json,index.faiss,metadata.json},
+        # ровно то, что реально читает ExistingVectorStore.load().
+        missing = _missing_vector_db_files(self.new_base_path)
 
         if missing:
             self.new_base_info_label.configure(
-                text=f"❌ Отсутствуют папки: {', '.join(missing)}", foreground="#e81123"
+                text=f"❌ В vector_db/ отсутствуют файлы: {', '.join(missing)}",
+                foreground="#e81123",
             )
             self.upload_btn.configure(state=tk.DISABLED)
         else:
-            # Подсчёт файлов
-            chunks_count = len(list((self.new_base_path / "chunks").glob("*.md")))
-            self.new_base_info_label.configure(
-                text=f"✅ База готова: {chunks_count} чанков", foreground="#107c10"
-            )
-            self.upload_btn.configure(state=tk.NORMAL)
+            chunks_count = _vector_db_chunk_count(self.new_base_path)
+            if chunks_count is None:
+                self.new_base_info_label.configure(
+                    text="❌ dataset.json повреждён или не читается",
+                    foreground="#e81123",
+                )
+                self.upload_btn.configure(state=tk.DISABLED)
+            else:
+                self.new_base_info_label.configure(
+                    text=f"✅ База готова: {chunks_count} чанков", foreground="#107c10"
+                )
+                self.upload_btn.configure(state=tk.NORMAL)
 
     def _validate_base(self) -> None:
         """Валидация новой базы данных."""
@@ -247,35 +287,28 @@ class RAGManager(ttk.Frame):
             return
 
         try:
-            # Проверка структуры
-            required_folders = ["chunks", "metadata", "indices"]
-            missing = [
-                f for f in required_folders if not (self.new_base_path / f).exists()
-            ]
+            # Проверка структуры - см. REQUIRED_VECTOR_DB_FILES выше.
+            missing = _missing_vector_db_files(self.new_base_path)
 
             if missing:
                 self.operation_status_label.configure(
-                    text=f"❌ Отсутствуют папки: {', '.join(missing)}",
+                    text=f"❌ В vector_db/ отсутствуют файлы: {', '.join(missing)}",
                     foreground="#e81123",
                 )
                 self.status_bar.configure(text="Ошибка", foreground="#e81123")
                 return
 
-            # Подсчёт файлов
-            chunks_path = self.new_base_path / "chunks"
-            metadata_path = self.new_base_path / "metadata"
-            indices_path = self.new_base_path / "indices"
+            chunks_count = _vector_db_chunk_count(self.new_base_path)
+            if chunks_count is None:
+                self.operation_status_label.configure(
+                    text="❌ dataset.json повреждён или не читается",
+                    foreground="#e81123",
+                )
+                self.status_bar.configure(text="Ошибка", foreground="#e81123")
+                return
 
-            chunks_count = len(list(chunks_path.glob("*.md")))
-            metadata_count = len(list(metadata_path.glob("*.json")))
-            indices_count = len(list(indices_path.glob("*")))
-
-            # Проверка валидности
             self.operation_status_label.configure(
-                text=f"✅ База валидна:\n"
-                f"   • Чанки: {chunks_count}\n"
-                f"   • Метаданные: {metadata_count}\n"
-                f"   • Индексы: {indices_count}",
+                text=f"✅ База валидна: {chunks_count} чанков в vector_db/",
                 foreground="#107c10",
             )
 
@@ -284,21 +317,21 @@ class RAGManager(ttk.Frame):
             # Логирование
             log_action(
                 "rag_validation",
-                {
-                    "path": str(self.new_base_path),
-                    "chunks": chunks_count,
-                    "metadata": metadata_count,
-                    "indices": indices_count,
-                },
+                {"path": str(self.new_base_path), "chunks": chunks_count},
             )
 
+            use_existing_index = os.getenv("USE_EXISTING_INDEX", "false").lower()
+            index_warning = (
+                ""
+                if use_existing_index == "true"
+                else "\n\n⚠️ USE_EXISTING_INDEX не включён - после замены "
+                "бэкенд продолжит использовать пустой локальный индекс, "
+                "новая база не вступит в силу."
+            )
             messagebox.showinfo(
                 "Валидация успешна",
-                f"База данных валидна!\n\n"
-                f"Чанки: {chunks_count}\n"
-                f"Метаданные: {metadata_count}\n"
-                f"Индексы: {indices_count}\n\n"
-                f"Можно загружать.",
+                f"База данных валидна!\n\nЧанков: {chunks_count}\n\n"
+                f"Можно загружать.{index_warning}",
             )
 
         except Exception as e:
@@ -317,8 +350,8 @@ class RAGManager(ttk.Frame):
             "Подтверждение замены базы",
             "ВНИМАНИЕ!\n\n"
             "Вы собираетесь заменить текущую базу данных RAG.\n"
-            "Старая база будет УДАЛЕНА без возможности восстановления.\n\n"
-            "Рекомендуется создать резервную копию!\n\n"
+            "Старая база будет переименована в RAG_data_base_backup/ "
+            "(предыдущий бэкап, если был, будет удалён).\n\n"
             "Продолжить?",
             icon=messagebox.WARNING,
         )
@@ -338,38 +371,71 @@ class RAGManager(ttk.Frame):
         thread.start()
 
     def _upload_base_thread(self) -> None:
-        """Загрузка базы в отдельном потоке."""
+        """
+        Загрузка базы в отдельном потоке.
+
+        Раньше `rmtree` текущей базы выполнялся ДО того, как новая база
+        была на месте - любая ошибка между шагами оставляла проект без
+        рабочей базы вообще (спасала только резервная копия рядом, если
+        её кто-то вручную восстановил). Теперь новая база сначала
+        копируется во временный каталог и заново проверяется там же, и
+        только после этого текущая база переименовывается в бэкап, а
+        временная - на её место: `Path.rename()` на одной файловой
+        системе - переименование записи в каталоге, не копирование, и
+        либо происходит целиком, либо не происходит вовсе. Найдено
+        зональным аудитом хаба 2026-09-08 (К-7).
+        """
+        current_base = Path("RAG_data_base")
+        backup_base = Path("RAG_data_base_backup")
+        temp_base = Path("RAG_data_base_incoming_tmp")
+
         try:
             if not self.rag_pipeline:
                 self._upload_error("RAG-пайплайн не инициализирован")
                 return
 
-            # Путь к текущей базе
-            current_base = Path("RAG_data_base")
-            backup_base = Path("RAG_data_base_backup")
+            assert self.new_base_path is not None, "Новая база не выбрана"
 
-            # Шаг 1: Создать резервную копию текущей базы
-            self._set_operation_status("Создание резервной копии...")
+            # Шаг 1: скопировать новую базу во временный каталог и
+            # проверить именно эту копию (а не источник, который мог
+            # измениться после выбора папки).
+            self._set_operation_status("Копирование новой базы во временный каталог...")
+
+            if temp_base.exists():
+                shutil.rmtree(temp_base)
+            shutil.copytree(self.new_base_path, temp_base)
+
+            self._set_operation_status("Повторная проверка скопированной базы...")
+            missing = _missing_vector_db_files(temp_base)
+            if missing:
+                shutil.rmtree(temp_base)
+                self._upload_error(
+                    f"В скопированной базе отсутствуют файлы vector_db/: "
+                    f"{', '.join(missing)} - текущая база не тронута."
+                )
+                return
+            if _vector_db_chunk_count(temp_base) is None:
+                shutil.rmtree(temp_base)
+                self._upload_error(
+                    "dataset.json скопированной базы повреждён или не "
+                    "читается - текущая база не тронута."
+                )
+                return
+
+            # Шаг 2: старая база -> бэкап, новая (временная) -> на место
+            # старой. Обе операции - rename на одной файловой системе,
+            # не copytree+rmtree - окно, в котором проекта нет ни в
+            # каком виде, исчезающе мало по сравнению со старой версией.
+            self._set_operation_status("Замена текущей базы...")
 
             if current_base.exists():
                 if backup_base.exists():
                     shutil.rmtree(backup_base)
-                shutil.copytree(current_base, backup_base)
+                current_base.rename(backup_base)
 
-            # Шаг 2: Удалить текущую базу
-            self._set_operation_status("Удаление старой базы...")
+            temp_base.rename(current_base)
 
-            if current_base.exists():
-                shutil.rmtree(current_base)
-
-            # Шаг 3: Скопировать новую базу
-            self._set_operation_status("Копирование новой базы...")
-
-            assert self.new_base_path is not None, "Новая база не выбрана"
-            if self.new_base_path.exists():
-                shutil.copytree(self.new_base_path, current_base)
-
-            # Шаг 4: Переиндексировать
+            # Шаг 3: переиндексировать
             self._set_operation_status("Переиндексация базы...")
 
             import asyncio
@@ -487,35 +553,29 @@ class RAGManager(ttk.Frame):
             text=f"Путь: {current_base.absolute()}", foreground="#303030"
         )
 
-        # Статистика
+        # Статистика - vector_db/dataset.json, то же, что реально читает
+        # ExistingVectorStore.load(). Раньше здесь проверялась
+        # chunks/*.md - структура, которую загрузчик не читает вообще,
+        # из-за чего реальная база на 157 чанков показывалась как
+        # "Статус: Пустая". Найдено зональным аудитом хаба 2026-09-08 (К-7).
         try:
-            chunks_path = current_base / "chunks"
-            metadata_path = current_base / "metadata"
-            indices_path = current_base / "indices"
+            chunks_count = _vector_db_chunk_count(current_base)
 
-            chunks_count = (
-                len(list(chunks_path.glob("*.md"))) if chunks_path.exists() else 0
-            )
-            metadata_count = (
-                len(list(metadata_path.glob("*.json"))) if metadata_path.exists() else 0
-            )
-            indices_count = (
-                len(list(indices_path.glob("*"))) if indices_path.exists() else 0
-            )
-
-            self.current_stats_label.configure(
-                text=f"Статистика: {chunks_count} чанков, {metadata_count} метаданных, {indices_count} индексов",
-                foreground="#303030",
-            )
-
-            # Статус
-            if chunks_count > 0:
-                self.current_status_label.configure(
-                    text="Статус: Активна", foreground="#107c10"
+            if chunks_count is None:
+                self.current_stats_label.configure(
+                    text="Статистика: vector_db/dataset.json не найден или повреждён",
+                    foreground="#303030",
                 )
-            else:
                 self.current_status_label.configure(
                     text="Статус: Пустая", foreground="#ffb900"
+                )
+            else:
+                self.current_stats_label.configure(
+                    text=f"Статистика: {chunks_count} чанков в vector_db/",
+                    foreground="#303030",
+                )
+                self.current_status_label.configure(
+                    text="Статус: Активна", foreground="#107c10"
                 )
 
         except Exception as e:

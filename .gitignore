@@ -52,6 +52,13 @@ data/indices/*.index
 data/indices/*.json
 data/tests/*.json
 
+# Резервная копия и временный каталог при замене RAG-базы через
+# админ-панель (gui_debugger/components/admin/rag_manager.py) - не
+# были здесь раньше, риск утечки чужой/устаревшей базы в публичный
+# репозиторий. Найдено зональным аудитом хаба 2026-09-08 (В-6/К-7).
+RAG_data_base_backup/
+RAG_data_base_incoming_tmp/
+
 # Тесты
 .pytest_cache/
 .coverage
