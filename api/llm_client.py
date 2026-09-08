@@ -2,7 +2,11 @@
 """
 Клиент для работы с LLM через ProxyAPI.
 
-Интеграция с GigaChat-Max и Yandex GPT Lite.
+Модель - gpt-4o-mini (см. primary_model/fallback_model ниже; оба равны
+gpt-4o-mini - настоящего резерва нет, см. decisions/decision-log.md,
+зональный аудит хаба 2026-09-08, В-2 отчёта). Докстринг раньше называл
+GigaChat-Max/Yandex GPT Lite - следы провайдера, от которого отказались
+ещё в v2.0 (CHANGELOG.md).
 
 Автор: KODA
 Дата: Март 2026
@@ -43,7 +47,10 @@ class LLMClient:
     """
     Клиент для работы с LLM через ProxyAPI.
 
-    Поддерживает основную модель GigaChat-Max и резервную Yandex GPT Lite.
+    primary_model и fallback_model оба равны gpt-4o-mini - "резервная
+    модель" исторически была отдельным провайдером, сейчас это одна и
+    та же модель, ветка повтора на другой модели (см. generate())
+    недостижима на практике.
 
     Attributes:
         cache_manager: Менеджер кэширования
@@ -166,22 +173,12 @@ class LLMClient:
                 error_message=str(e),
             )
 
-            # Попытка использовать резервную модель
-            if current_model != self.fallback_model:
-                try:
-                    logger_llm.info(f"Попытка резервной модели {self.fallback_model}")
-                    result = await self._call_api(
-                        model=self.fallback_model,
-                        prompt=prompt,
-                        max_tokens=max_tokens,
-                        temperature=temperature,
-                    )
-                    logger_llm.info(f"Резервная модель ответила")
-                    return GenerationResult(text=result, is_fallback=False)
-                except Exception as e2:
-                    logger_llm.error(f"Ошибка резервной модели: {e2}")
-
-            # Возврат к демо-ответу
+            # Повтор на резервной модели раньше стоял здесь - primary_model
+            # и fallback_model оба равны "gpt-4o-mini" (см. __init__), ветка
+            # `if current_model != self.fallback_model` никогда не
+            # выполнялась. Найдено зональным аудитом хаба 2026-09-08 (В-2
+            # отчёта); убрана, а не превращена в настоящий резерв - это
+            # отдельное решение владельца, не тронутое здесь.
             return GenerationResult(
                 text=self._generate_fallback(query or prompt), is_fallback=True
             )
@@ -245,12 +242,13 @@ class LLMClient:
 
                     data = await response.json()
 
-                    # Парсинг ответа (формат может отличаться)
+                    # ProxyAPI отдаёт OpenAI-совместимый формат (choices).
+                    # Раньше здесь была ветка elif "result" in data - формат
+                    # ответа GigaChat, недостижимая на этом API. Найдено
+                    # зональным аудитом хаба 2026-09-08 (В-2 отчёта).
                     content = ""
                     if "choices" in data and len(data["choices"]) > 0:
                         content = data["choices"][0]["message"]["content"]
-                    elif "result" in data:
-                        content = data["result"]
                     else:
                         error_msg = "Неизвестный формат ответа API"
                         logger_llm.error(error_msg)

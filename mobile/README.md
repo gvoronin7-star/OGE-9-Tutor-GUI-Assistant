@@ -1,17 +1,80 @@
-# mobile
+# ОГЭ-Тьютор (мобильный клиент)
 
-A new Flutter project.
+Flutter/Dart-клиент [OGE-9-Tutor-GUI-Assistant](../README.md) — второй
+фронтенд той же платформы, что и десктопное приложение (`gui_debugger/`),
+на общем FastAPI-бэкенде (`../main.py`, `../api/`). Полная концепция и
+история решений — `../decisions/2026-09-01_flutter-mobile-app-concept-plan.md`
+и записи `../decisions/decision-log.md` с 2026-09-01.
 
-## Getting Started
+## Что уже есть
 
-This project is a starting point for a Flutter application.
+- **Автономный режим** (по умолчанию) — темы, тесты и прогресс полностью
+  на устройстве, офлайн-семантический поиск по локальной копии базы ФИПИ
+  (`assets/data/chunks.json`, `assets/models/rubert_tiny2.int8.onnx`).
+  Интернет и сервер не нужны вообще.
+- **Серверный режим** (переключается в «Настройки») — то же приложение
+  подключается к тому же бэкенду, что и десктоп, через три эндпоинта в
+  `../api/mobile_routes.py` (`/api/topics`, `/api/ask`,
+  `/api/tests/generate`). Рассчитан на локальную сеть (LAN) — сервер
+  слушает по обычному HTTP, `usesCleartextTraffic="true"` в манифесте
+  осознанно (см. `../decisions/decision-log.md`, зональный аудит хаба
+  2026-09-08, К-2); для доступа из интернета этого недостаточно, нужны
+  TLS и аутентификация отдельным решением владельца.
+- **Прогресс и история** — локальная база (Drift/SQLite) на устройстве.
 
-A few resources to get you started if this is your first Flutter project:
+## Известные ограничения
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- **Один предмет, один экзамен.** Обществознание, только ОГЭ. Контент —
+  учебный материал для показа механики, не выверенный методистами
+  (владелец решает точность контента отдельно от технической стороны).
+- **База ФИПИ — 157 чанков** одной методички, перечанкованной и
+  переэмбеддённой Squeezer'ом (история 204 → 197 → 157 — `../Squeezer/
+  decisions/decision-log.md`). Число растёт вместе с базой, не константа.
+- **Только Android, без публикации.** Релизный APK собирается локально
+  (`flutter build apk --release --split-per-abi`) и передаётся напрямую,
+  в Google Play не публиковалось. `ios/` — нетронутый скаффолд Flutter,
+  не собирался и не тестировался; `flutter_onnxruntime` для офлайн-поиска
+  на iOS не проверялся вообще.
+- **Аккаунтов нет.** Каждая установка — независимый остров локальных
+  данных; результаты тестов на сервер не передаются даже в серверном
+  режиме. Архитектура для аккаунтов и синхронизации предложена (план,
+  раздел 12 концепт-документа), не реализована.
+- **Обновление контента — через код.** Правка тем/вопросов требует
+  редактирования Python-источников на стороне Squeezer/десктопа и
+  пересборки мобильного приложения; готового редактора для
+  нетехнического сотрудника нет.
+- **Релизная сборка подписана debug-ключом** (свой keystore не заведён) —
+  приемлемо для демо/пилота, но APK с другой машины не устанавливается
+  поверх существующего без удаления (и потери локального прогресса).
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Сборка
+
+```bash
+flutter pub get
+flutter analyze
+flutter test
+
+# Для демонстрации/передачи - именно этот вариант проверен end-to-end
+# (INTERNET-разрешение, серверный режим, реальное устройство):
+flutter build apk --release --split-per-abi
+# -> build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+#    (большинство современных Android-устройств - arm64)
+
+# Один файл на все архитектуры (крупнее, для случаев, когда ABI
+# устройства заранее неизвестен):
+flutter build apk --release
+```
+
+## Локальный запуск бэкенда для серверного режима
+
+Из корня репозитория (не `mobile/`):
+
+```bash
+cp .env.example .env   # задать PROXY_API_KEY, при необходимости USE_EXISTING_INDEX
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+В приложении: «Настройки» → включить «Серверный режим» → указать
+`<LAN-адрес компьютера>:8000` (не `127.0.0.1`, если сервер и телефон -
+разные устройства в одной сети; для проверки с эмулятора/по USB подойдёт
+`adb reverse tcp:8000 tcp:8000` и `127.0.0.1:8000`).

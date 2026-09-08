@@ -37,6 +37,8 @@
 - `GET /` — проверка работоспособности
 - `GET /health` — проверка здоровья компонентов
 - `GET /metrics` — метрики системы
+- `GET /api/topics`, `POST /api/ask`, `POST /api/tests/generate` — для
+  мобильного клиента (`../mobile/`) в серверном режиме, `api/mobile_routes.py`
 
 **Файл**: `main.py`
 
@@ -46,10 +48,21 @@
 
 **Компоненты**:
 
-#### 3.1 Векторный поиск (Faiss)
-- **Файл**: `api/vector_store.py`
-- **Индекс**: HNSW (768-dim)
-- **Модель эмбеддингов**: rubert-tiny2
+#### 3.1 Векторный поиск (Faiss) — два раздельных хранилища
+
+Не путать: это разные векторные пространства, эмбеддинги одного не
+совместимы с индексом другого.
+
+- **`api/vector_store_existing.py` (`ExistingVectorStore`) — реально
+  используемое хранилище**, включается флагом `USE_EXISTING_INDEX=true`.
+  Читает готовый индекс из `RAG_data_base/vector_db/`
+  (157 чанков базы ФИПИ), эмбеддинги OpenAI `text-embedding-3-small`
+  (1536-dim), эмбеддит сам запрос через тот же API.
+- **`api/vector_store.py` (`VectorStore`) — локальный fallback**,
+  пустой по умолчанию, пока `data/chunks/` не наполнены отдельно.
+  Индекс: HNSW, модель эмбеддингов `rubert-tiny2` (312-dim на практике,
+  не 768 — см. `decisions/decision-log.md`, зональный аудит хаба
+  2026-09-08, В-9 отчёта).
 
 #### 3.2 Полнотекстовый поиск (Whoosh)
 - **Файл**: `api/text_search.py`
@@ -57,7 +70,8 @@
 
 #### 3.3 LLM-клиент
 - **Файл**: `api/llm_client.py`
-- **Основная модель**: GPT-4o-mini (через ProxyAPI)
+- **Основная модель**: GPT-4o-mini (через ProxyAPI, единый адрес
+  `https://api.proxyapi.ru/v1`)
 
 **Пайплайн**:
 1. Получение запроса от GUI
@@ -154,13 +168,13 @@ timestamp, user_id, query_text, retrieved_chunks, llm_response_time, total_respo
 | Компонент | Технология | Версия |
 |-----------|------------|--------|
 | GUI Framework | Tkinter + ttkbootstrap | - |
+| Mobile | Flutter/Dart (`mobile/`) | - |
 | Web Framework | FastAPI | 0.109.0 |
-| Vector Search | Faiss | 1.7.4 |
+| Vector Search | Faiss (`faiss-cpu`) | 1.13.2 |
 | Text Search | Whoosh | 2.7.4 |
-| Cache | Redis / In-memory | 7 |
+| Cache | Redis / In-memory (fallback) | 5.0.1 |
 | LLM | GPT-4o-mini (ProxyAPI) | - |
-| Embeddings | sentence-transformers | 2.3.1 |
-| Container | Docker | - |
+| Embeddings | OpenAI `text-embedding-3-small` (основная база) / sentence-transformers (локальный fallback) | 2.3.1 |
 
 ## Масштабирование
 
@@ -176,10 +190,19 @@ timestamp, user_id, query_text, retrieved_chunks, llm_response_time, total_respo
 
 ## Безопасность
 
-1. **Фильтрация запросов**: проверка длины и содержимого
-2. **Rate limiting**: 10 запросов/минуту на пользователя
-3. **Изоляция**: компоненты разделены по модулям
-4. **Логирование**: все запросы записываются в CSV
+Бэкенд слушает `0.0.0.0:8000` **без аутентификации, CORS-политики и
+лимита частоты запросов** — рассчитан на локальную сеть (LAN), не на
+публичный интернет (см. `mobile/README.md`). `/api/ask` — платный
+вызов LLM на каждый запрос, доступный без ключа кому угодно в той же
+сети. Известная находка (В-1, зональный аудит хаба 2026-09-08), решение
+о минимальной аутентификации — за владельцем. Валидация входных схем
+через Pydantic есть (например, `difficulty`/`num_questions` в
+`api/mobile_routes.py` — закрыто К-1 того же аудита), но это защита от
+некорректных данных, не от чрезмерного количества запросов.
+
+1. **Изоляция**: компоненты разделены по модулям
+2. **Логирование**: успешные и ошибочные запросы записываются
+   (`utils/advanced_logger.py`), CSV не в git (см. `.gitignore`)
 
 ## Мониторинг
 

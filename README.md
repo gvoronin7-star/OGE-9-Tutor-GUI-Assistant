@@ -1,11 +1,30 @@
 # OGE Tutor GUI
 
-📚 **Десктопное приложение для подготовки к ОГЭ по обществознанию** с RAG-пайплайном и интеллектуальной генерацией вопросов.
+📚 **Платформа для подготовки к ОГЭ по обществознанию** с RAG-пайплайном и интеллектуальной генерацией вопросов — десктопное приложение и мобильный клиент на общем бэкенде.
 
 [![Python Tests](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/python-test.yml/badge.svg)](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/python-test.yml)
 [![Lint](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/lint.yml/badge.svg)](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/lint.yml)
+[![Flutter CI](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/flutter-ci.yml/badge.svg)](https://github.com/gvoronin7-star/OGE-9-Tutor-GUI-Assistant/actions/workflows/flutter-ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+---
+
+## 📱 Два клиента, один бэкенд
+
+Репозиторий содержит два независимых клиента поверх общего FastAPI-бэкенда
+(`main.py`, `api/`) с RAG-пайплайном и векторной базой ФИПИ (157 чанков):
+
+- **Десктоп** (`gui_debugger/`) — Tkinter + ttkbootstrap, пользовательский и
+  административный режимы. Работает как самостоятельное приложение,
+  бэкенд запускает и использует in-process, без сети.
+- **Мобильный клиент** (`mobile/`) — Flutter/Dart, Android (релизный APK
+  собирается локально, в Google Play не публиковалось; iOS не собирался и
+  не тестировался). Два режима: полностью автономный (офлайн-поиск и банк
+  вопросов на устройстве) и серверный — через три эндпоинта в
+  `api/mobile_routes.py`, тот же бэкенд, что у десктопа. Подробности,
+  ограничения и план развития — `mobile/README.md` и
+  `decisions/2026-09-01_flutter-mobile-app-concept-plan.md`.
 
 ---
 
@@ -178,6 +197,5 @@ MIT License
 
 ---
 
-**Версия:** 2.3  
-**Последнее обновление:** Апрель 2026  
+**Версия десктопа:** 2.3.0 (`.env.example`/`CHANGELOG.md`) · **версия мобильного клиента:** 1.0.0 (`mobile/pubspec.yaml`) — раздельное версионирование, см. `decisions/decision-log.md`, запись от 2026-09-05.  
 **Статус:** ✅ Готово к использованию
