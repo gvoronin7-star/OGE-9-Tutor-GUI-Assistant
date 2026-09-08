@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import time
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import aiohttp
@@ -21,6 +22,21 @@ from utils.advanced_logger import detailed_logger, logger_llm
 from utils.cache import CacheManager
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class GenerationResult:
+    """
+    Результат generate() - раньше был просто str, из-за чего отказ LLM
+    (таймаут, 401, 429, сеть, неизвестный формат ответа) был неотличим
+    от настоящего ответа для вызывающего кода: RAGPipeline.get_answer()
+    кэшировал заглушку на 1-24 часа со status="success", а десктоп
+    подписывал её "Модель: gpt-4o-mini". Найдено зональным аудитом хаба
+    2026-09-08 (К-4).
+    """
+
+    text: str
+    is_fallback: bool
 
 
 class LLMClient:
@@ -68,7 +84,7 @@ class LLMClient:
         max_tokens: int = 500,
         temperature: float = 0.7,
         query: Optional[str] = None,
-    ) -> str:
+    ) -> GenerationResult:
         """
         Генерация текста через LLM.
 
@@ -88,13 +104,16 @@ class LLMClient:
                 2026-09-01_content-quality-review.md, находка 2).
 
         Returns:
-            str: Сгенерированный текст
+            GenerationResult: текст плюс признак, что это демо-заглушка,
+                а не настоящий ответ модели.
         """
         request_start = time.time()
 
         if not self.api_key:
             logger_llm.warning("PROXY_API_KEY не установлен. Возвращаю демо-ответ.")
-            return self._generate_fallback(query or prompt)
+            return GenerationResult(
+                text=self._generate_fallback(query or prompt), is_fallback=True
+            )
 
         current_model = model or self.primary_model
 
@@ -130,7 +149,7 @@ class LLMClient:
                 status="success",
             )
 
-            return result
+            return GenerationResult(text=result, is_fallback=False)
 
         except Exception as e:
             duration = (time.time() - request_start) * 1000
@@ -158,12 +177,14 @@ class LLMClient:
                         temperature=temperature,
                     )
                     logger_llm.info(f"Резервная модель ответила")
-                    return result
+                    return GenerationResult(text=result, is_fallback=False)
                 except Exception as e2:
                     logger_llm.error(f"Ошибка резервной модели: {e2}")
 
             # Возврат к демо-ответу
-            return self._generate_fallback(query or prompt)
+            return GenerationResult(
+                text=self._generate_fallback(query or prompt), is_fallback=True
+            )
 
     async def _call_api(
         self, model: str, prompt: str, max_tokens: int, temperature: float
@@ -327,9 +348,10 @@ class LLMClient:
 
         try:
             # Генерация через LLM
-            response = await self.generate(
+            generation = await self.generate(
                 prompt=prompt, max_tokens=2000, temperature=0.5, query=topic
             )
+            response = generation.text
 
             duration = (time.time() - request_start) * 1000
 

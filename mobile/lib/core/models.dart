@@ -1,3 +1,20 @@
+/// Ответ /api/ask. `isFallback` раньше не было в схеме - отказ LLM на
+/// бэкенде (таймаут/сеть/лимит) был неотличим от настоящего ответа,
+/// сервер отдавал 200 с шаблонным текстом, и мобильный клиент
+/// показывал его как обычный ответ. Найдено зональным аудитом хаба
+/// 2026-09-08 (К-4).
+class AskResult {
+  final String answer;
+  final bool isFallback;
+
+  const AskResult({required this.answer, required this.isFallback});
+
+  factory AskResult.fromJson(Map<String, dynamic> json) => AskResult(
+    answer: json['answer'] as String,
+    isFallback: json['is_fallback'] as bool? ?? false,
+  );
+}
+
 class Topic {
   final String id;
   final String title;

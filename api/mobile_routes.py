@@ -42,6 +42,10 @@ class AskResponse(BaseModel):
     # первом реальном запросе с телефона (raw response.get("sources") никогда
     # не вызывался с реальными данными до этого).
     sources: List[str] = Field(default_factory=list)
+    # Отказ LLM раньше был неотличим от настоящего ответа - см.
+    # api/llm_client.py::GenerationResult. Найдено зональным аудитом
+    # хаба 2026-09-08 (К-4).
+    is_fallback: bool = False
 
 
 class GenerateTestRequest(BaseModel):
@@ -69,7 +73,11 @@ async def ask(payload: AskRequest, request: Request) -> AskResponse:
         raise HTTPException(status_code=503, detail="RAG-пайплайн не инициализирован")
 
     result = await rag_pipeline.get_answer(payload.question, payload.user_id)
-    return AskResponse(answer=result["answer"], sources=result.get("sources", []))
+    return AskResponse(
+        answer=result["answer"],
+        sources=result.get("sources", []),
+        is_fallback=result.get("is_fallback", False),
+    )
 
 
 @router.post("/tests/generate")

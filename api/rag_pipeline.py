@@ -361,6 +361,10 @@ class RAGPipeline:
                     "answer": cached["answer"],
                     "sources": cached.get("sources", []),
                     "is_cached": True,
+                    # Заглушки больше не кэшируются (см. ниже) - значение
+                    # по умолчанию покрывает записи, закэшированные до
+                    # этого фикса.
+                    "is_fallback": cached.get("is_fallback", False),
                     "response_time": time.time() - request_start,
                 }
 
@@ -380,25 +384,33 @@ class RAGPipeline:
             # Генерация ответа через LLM
             if self.llm_client:
                 llm_start = time.time()
-                answer = await self.llm_client.generate(
+                generation = await self.llm_client.generate(
                     prompt=self.SYSTEM_PROMPT.format(context=context, query=query),
                     query=query,
                 )
+                answer = generation.text
+                is_fallback = generation.is_fallback
                 llm_duration = (time.time() - llm_start) * 1000
                 logger_rag.info(f"LLM ответ за {llm_duration:.2f}ms")
             else:
-                # Демо-ответ, если LLM недоступен
+                # Демо-ответ, если LLM вообще не сконфигурирован - тоже
+                # деградация, не настоящий ответ модели.
                 answer = self._generate_demo_answer(query, relevant_chunks)
+                is_fallback = True
                 llm_duration = 0
 
-            # Сохранение в кэш
-            if use_cache:
+            # Заглушку не кэшируем - иначе после починки ключа/сети
+            # пользователь до истечения TTL (1-24 ч) продолжает получать
+            # старый демо-ответ вместо настоящего. Найдено зональным
+            # аудитом хаба 2026-09-08 (К-4).
+            if use_cache and not is_fallback:
                 cache_ttl = await self._get_cache_ttl(query)
                 await self.cache_manager.set(
                     cache_key,
                     {
                         "answer": answer,
                         "sources": [c["topic"] for c in relevant_chunks[:3]],
+                        "is_fallback": False,
                     },
                     ttl=cache_ttl,
                 )
@@ -415,7 +427,7 @@ class RAGPipeline:
                     "chunks_found": len(relevant_chunks),
                 },
                 duration_ms=total_duration,
-                status="success",
+                status="fallback" if is_fallback else "success",
                 user_id=user_id,
             )
 
@@ -429,6 +441,7 @@ class RAGPipeline:
                 "answer": answer,
                 "sources": [c["topic"] for c in relevant_chunks[:3]],
                 "is_cached": False,
+                "is_fallback": is_fallback,
                 "response_time": response_time,
             }
 

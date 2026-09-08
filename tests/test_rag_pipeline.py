@@ -18,6 +18,7 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from api.llm_client import GenerationResult
 from api.rag_pipeline import RAGPipeline
 from utils.cache import CacheManager
 
@@ -88,7 +89,9 @@ class TestRAGPipeline:
 
             mock_ts.search = AsyncMock(return_value=[])
 
-            mock_llm.generate = AsyncMock(return_value="Тестовый ответ")
+            mock_llm.generate = AsyncMock(
+                return_value=GenerationResult(text="Тестовый ответ", is_fallback=False)
+            )
 
             # Вызов
             result = await rag_pipeline.get_answer(query="Тестовый вопрос", user_id=123)
@@ -98,6 +101,35 @@ class TestRAGPipeline:
             assert result["answer"] == "Тестовый ответ"
             assert "sources" in result
             assert result["is_cached"] is False
+            assert result["is_fallback"] is False
+            mock_cache_manager.set.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_get_answer_fallback_not_cached(
+        self, rag_pipeline, mock_cache_manager
+    ):
+        """
+        Отказ LLM (is_fallback=True) должен пробрасываться в результат и
+        НЕ кэшироваться - иначе после починки ключа/сети пользователь до
+        истечения TTL (1-24 ч) продолжает получать старую заглушку со
+        status="success". Найдено зональным аудитом хаба 2026-09-08 (К-4).
+        """
+        with patch.object(rag_pipeline, "vector_store") as mock_vs, patch.object(
+            rag_pipeline, "text_search"
+        ) as mock_ts, patch.object(rag_pipeline, "llm_client") as mock_llm:
+
+            mock_vs.search = AsyncMock(return_value=[])
+            mock_ts.search = AsyncMock(return_value=[])
+            mock_llm.generate = AsyncMock(
+                return_value=GenerationResult(
+                    text="Демо-ответ по ключевым словам", is_fallback=True
+                )
+            )
+
+            result = await rag_pipeline.get_answer(query="Тестовый вопрос", user_id=123)
+
+            assert result["is_fallback"] is True
+            mock_cache_manager.set.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_get_answer_cached(self, rag_pipeline, mock_cache_manager):

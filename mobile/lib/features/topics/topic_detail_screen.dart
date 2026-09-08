@@ -48,6 +48,7 @@ class TopicDetailScreen extends ConsumerStatefulWidget {
 
 class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
   String? _remoteArticle;
+  bool _remoteIsFallback = false;
   bool _remoteLoading = false;
   String? _remoteError;
 
@@ -69,12 +70,13 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
       _remoteError = null;
     });
     try {
-      final answer = await ref
+      final result = await ref
           .read(apiClientProvider)
           .ask('Расскажи подробно про тему: $topicTitle');
       if (!mounted) return;
       setState(() {
-        _remoteArticle = answer;
+        _remoteArticle = result.answer;
+        _remoteIsFallback = result.isFallback;
         _remoteLoading = false;
       });
     } catch (_) {
@@ -160,7 +162,18 @@ class _TopicDetailScreenState extends ConsumerState<TopicDetailScreen> {
                 if (showingRemote)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: Chip(label: const Text('Ответ сервера')),
+                    // is_fallback значит, что LLM на сервере была
+                    // недоступна и это демо-заглушка по ключевым словам,
+                    // а не настоящий ответ модели - показывать как
+                    // обычный "Ответ сервера" вводит в заблуждение.
+                    // Найдено зональным аудитом хаба 2026-09-08 (К-4).
+                    child: Chip(
+                      label: Text(
+                        _remoteIsFallback
+                            ? 'Демо-ответ (LLM недоступна)'
+                            : 'Ответ сервера',
+                      ),
+                    ),
                   ),
                 if (showingRemote)
                   Text(

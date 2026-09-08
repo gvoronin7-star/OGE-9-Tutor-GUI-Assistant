@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../../core/models.dart';
+
 class ApiClient {
   final String baseUrl;
   final Dio _dio;
@@ -33,12 +35,12 @@ class ApiClient {
     }
   }
 
-  Future<String> ask(String question, {int userId = 0}) async {
+  Future<AskResult> ask(String question, {int userId = 0}) async {
     final response = await _dio.post(
       '/api/ask',
       data: {'question': question, 'user_id': userId},
     );
-    return response.data['answer'] as String;
+    return AskResult.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<Map<String, dynamic>> generateTest(

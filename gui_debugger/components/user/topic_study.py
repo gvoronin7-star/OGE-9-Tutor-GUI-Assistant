@@ -218,6 +218,7 @@ class TopicStudy(ttk.Frame):
                 "sources": [],
                 "response_time": 0,
                 "is_cached": False,
+                "is_fallback": True,
             }
 
     def _process_topic(self, topic: str) -> None:
@@ -233,6 +234,7 @@ class TopicStudy(ttk.Frame):
             sources = result.get("sources", [])
             response_time = result.get("response_time", 0)
             is_cached = result.get("is_cached", False)
+            is_fallback = result.get("is_fallback", False)
 
             # Логирование успешного ответа
             log_action(
@@ -250,9 +252,18 @@ class TopicStudy(ttk.Frame):
             self.answer_area.insert(tk.END, f"📚 {topic}\n\n", "title")
             self.answer_area.insert(tk.END, f"{answer}\n\n", "text")
 
-            # Мета-информация с моделью
-            model_info = "gpt-4o-mini" if not is_cached else "кэш"
-            meta = f"⏱️ {response_time:.2f}с  |  🤖 Модель: {model_info}"
+            # Мета-информация с моделью - is_fallback значит, что LLM была
+            # недоступна и ответ пришёл из демо-заглушки по ключевым
+            # словам, а не от модели; подписывать его "Модель: gpt-4o-mini"
+            # (как раньше) выдаёт деградацию за настоящий ответ. Найдено
+            # зональным аудитом хаба 2026-09-08 (К-4).
+            if is_fallback:
+                model_info = "⚠️ Демо-ответ (LLM недоступна)"
+            elif is_cached:
+                model_info = "Модель: кэш"
+            else:
+                model_info = "Модель: gpt-4o-mini"
+            meta = f"⏱️ {response_time:.2f}с  |  🤖 {model_info}"
             if sources:
                 meta += f"  |  📚 Источники: {', '.join(sources[:3])}"
             if is_cached:
