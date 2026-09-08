@@ -334,7 +334,7 @@ class TestSolver(ttk.Frame):
         topic = self.topic_var.get()
 
         # Логирование начала теста
-        gui_action_logger.log_test_start(topic, "mixed", 5)
+        gui_action_logger.log_test_start(topic, "medium", 5)
 
         # Индикатор загрузки
         self.loading_label.configure(text="⏳ Загрузка тестов...")
@@ -426,7 +426,7 @@ class TestSolver(ttk.Frame):
 
         async_helper.run_async_in_background(
             self,
-            self.test_generator.generate_test(topic, "mixed", num_questions=5),
+            self.test_generator.generate_test(topic, "medium", num_questions=5),
             on_success,
             on_error,
         )
@@ -713,10 +713,20 @@ class TestSolver(ttk.Frame):
         demo_test: Dict[str, Any] = {
             "test_id": f"demo_{topic}",
             "topic": topic,
-            "difficulty": "mixed",
+            "difficulty": "medium",
             "questions": {f"q_{i}": q for i, q in enumerate(questions_list)},
             "total_questions": len(questions_list),
         }
+
+        # Без этого правильный ответ у демо-теста по теме всегда стоит на
+        # той же позиции, на которой его записали в _DEMO_QUESTIONS_BY_TOPIC
+        # - тест по теме проходим один раз "на угадай индекс". Тест "по всем
+        # темам" (_use_demo_all_topics_test) уже тасует, этот путь - нет.
+        # Найдено зональным аудитом хаба 2026-09-08 (В-11).
+        for q_key in demo_test["questions"]:
+            demo_test["questions"][q_key] = self._shuffle_answers(
+                demo_test["questions"][q_key]
+            )
 
         self._load_test(demo_test)
 

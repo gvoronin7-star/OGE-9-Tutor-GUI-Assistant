@@ -55,7 +55,7 @@ class GenerateTestRequest(BaseModel):
     # - {"difficulty": "../../x"} писал JSON за пределы data/tests/ через
     # публичный, не аутентифицированный эндпоинт. Найдено зональным
     # аудитом хаба 2026-09-08 (К-1).
-    difficulty: Literal["easy", "medium", "hard", "mixed"] = "medium"
+    difficulty: Literal["easy", "medium", "hard"] = "medium"
     num_questions: int = Field(default=5, ge=1, le=20)
 
 

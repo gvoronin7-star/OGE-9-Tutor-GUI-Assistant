@@ -18,14 +18,22 @@ from api.rag_pipeline import RAGPipeline
 
 logger = logging.getLogger(__name__)
 
-# Проверенные значения сложности - см. difficulty_params ниже, плюс
-# "mixed" (используется generate_all_topics_test). difficulty становится
-# частью имени файла на запись (test_id ниже) - без этой проверки
-# значение, пришедшее не через мобильный API (который валидирует его
-# отдельно, pydantic Literal в api/mobile_routes.py), давало бы path
-# traversal через сам генератор. Найдено зональным аудитом хаба
-# 2026-09-08 (К-1).
-DIFFICULTY_LEVELS = ("easy", "medium", "hard", "mixed")
+# Проверенные значения сложности - см. difficulty_params ниже.
+# difficulty становится частью имени файла на запись (test_id ниже) -
+# без этой проверки значение, пришедшее не через мобильный API (который
+# валидирует его отдельно, pydantic Literal в api/mobile_routes.py),
+# давало бы path traversal через сам генератор. Найдено зональным
+# аудитом хаба 2026-09-08 (К-1).
+#
+# "mixed" сюда не входит: generate_all_topics_test() ниже вызывает
+# llm_client.generate_questions() напрямую, минуя этот список, и
+# реально собирает вопросы разной сложности с разных тем - "mixed" там
+# честный. А в generate_test() (тест по одной теме) "mixed" раньше был
+# зашит как единственное, не выбираемое пользователем значение и молча
+# вырождался в behaviour "medium" (difficulty_params.get(difficulty,
+# ...["medium"]) не находил ключ "mixed"). Убран из GUI и отсюда
+# зональным аудитом хаба 2026-09-08 (Г-7) - решение владельца.
+DIFFICULTY_LEVELS = ("easy", "medium", "hard")
 
 
 class TestGenerator:

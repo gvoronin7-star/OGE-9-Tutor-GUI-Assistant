@@ -45,7 +45,7 @@ project_root/
 ### RAG-Pipeline
 
 - Поиск: Faiss (top-5) + Whoosh (top-3)
-- LLM: GigaChat-Max через ProxyAPI
+- LLM: gpt-4o-mini через ProxyAPI
 - Кэширование: Redis с динамическим TTL
 - Чанки: 250-350 слов, Markdown
 

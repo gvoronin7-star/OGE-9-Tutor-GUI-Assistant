@@ -21,11 +21,47 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import aiohttp
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from utils.advanced_logger import detailed_logger, logger_llm
 from utils.cache import CacheManager
 
 logger = logging.getLogger(__name__)
+
+
+class _GeneratedQuestion(BaseModel):
+    """
+    Схема одного вопроса, ожидаемая от LLM в generate_questions().
+
+    Раньше `questions_data.get("questions", [])` принимался как есть,
+    без проверки формы: не-словарь вместо вопроса, отсутствующие
+    "answers"/"correct_answer" или индекс правильного ответа за
+    пределами списка ответов падали не здесь, а ниже по стеку -
+    например, `_shuffle_answers` на десктопе кидает необработанный
+    `StopIteration`, когда `correct_answer` не совпадает ни с одним
+    индексом `answers`. Найдено зональным аудитом хаба 2026-09-08
+    (Г-7 плана).
+    """
+
+    question: str = Field(min_length=1)
+    answers: List[str] = Field(min_length=2)
+    correct_answer: int
+    explanation: str = ""
+
+    @model_validator(mode="after")
+    def _correct_answer_in_range(self) -> "_GeneratedQuestion":
+        if not 0 <= self.correct_answer < len(self.answers):
+            raise ValueError(
+                f"correct_answer={self.correct_answer} вне диапазона "
+                f"ответов (0..{len(self.answers) - 1})"
+            )
+        return self
+
+
+class _GeneratedQuestionsResponse(BaseModel):
+    """Схема всего JSON-ответа LLM на промпт generate_questions()."""
+
+    questions: List[_GeneratedQuestion] = Field(default_factory=list)
 
 
 @dataclass
@@ -384,7 +420,24 @@ class LLMClient:
                 )
                 return {}
 
-            questions = questions_data.get("questions", [])
+            try:
+                validated = _GeneratedQuestionsResponse.model_validate(questions_data)
+            except ValidationError as e:
+                logger_llm.warning(
+                    f"LLM вернул JSON неожиданной структуры: {e}, ответ: {response[:200]}"
+                )
+                detailed_logger.log_request(
+                    component="llm",
+                    action="generate_questions",
+                    input_data={"topic": topic, "num_questions": num_questions},
+                    output_data={"raw_response": response[:200]},
+                    duration_ms=duration,
+                    status="error",
+                    error_message=f"Structure validation error: {e}",
+                )
+                return {}
+
+            questions = [q.model_dump() for q in validated.questions]
 
             # Добавляем difficulty в каждый вопрос
             for q in questions:
