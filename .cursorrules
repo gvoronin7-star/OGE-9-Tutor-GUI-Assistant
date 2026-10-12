@@ -11,71 +11,95 @@
 ```
 project_root/
 ├── .cursorrules           # Этот файл
-├── docker-compose.yml     # Оркестрация
-├── Dockerfile             # Образ
+├── KODA.md                # Краткая справка для AI-ассистентов
 ├── requirements.txt       # Зависимости
-├── main.py               # FastAPI приложение
-├── bot/                  # Telegram бот
-│   ├── __init__.py
-│   ├── handlers.py       # Обработчики
-│   ├── keyboards.py      # Клавиатуры
-│   └── main.py
-├── api/                  # API и RAG
-│   ├── __init__.py
-│   ├── rag_pipeline.py  # RAG пайплайн
-│   ├── vector_store.py  # Faiss
-│   ├── text_search.py   # Whoosh
-│   ├── llm_client.py    # LLM клиент
-│   └── test_generator.py
-├── utils/                # Утилиты
-│   ├── __init__.py
-│   ├── logger.py
-│   └── cache.py
-├── data/                 # Данные
-│   ├── chunks/
-│   ├── metadata/
-│   ├── indices/
-│   └── tests/
-├── logs/                 # Логи
-└── docs/                 # Документация
+├── main.py                # FastAPI backend (точка входа)
+├── gui_debugger/          # Десктопный GUI (Tkinter + ttkbootstrap)
+│   ├── main.py            # Точка входа GUI
+│   ├── app.py             # Главное окно
+│   ├── modes/             # user_mode.py, admin_mode.py, mode_selector.py
+│   ├── components/        # main_menu, topic_study, test_solver, progress,
+│   │                       # log_viewer, metrics_panel, rag_panel,
+│   │                       # admin/ (rag_manager, users_panel, config_panel,
+│   │                       #        cache_manager, llm_monitor, logs_viewer)
+│   ├── styles/             # theme.py
+│   └── utils/              # gui_logger.py, async_helper.py
+├── api/                    # Backend и RAG
+│   ├── rag_pipeline.py     # RAG-пайплайн (класс RAGPipeline)
+│   ├── vector_store.py     # VectorStore — локальный fallback (sentence-transformers)
+│   ├── vector_store_existing.py  # ExistingVectorStore — реальная база ФИПИ (OpenAI)
+│   ├── text_search.py      # Whoosh
+│   ├── llm_client.py       # LLM-клиент (GPT-4o-mini через ProxyAPI)
+│   ├── test_generator.py   # Генератор тестов
+│   └── mobile_routes.py    # REST-эндпоинты для мобильного клиента
+├── mobile/                 # Мобильный клиент (Flutter/Dart, Android) — свой README.md
+├── utils/                  # logger.py, advanced_logger.py, cache.py, hashing.py
+├── scripts/                # integrate_rag_database.py, export_mobile_*,
+│                           # generate_*_icon.py, check_secrets.py и др.
+├── data/                   # chunks/, metadata/, indices/, tests/
+├── RAG_data_base/          # vector_db/ — реальная база ФИПИ (157 чанков,
+│                           # dataset.json + index.faiss + metadata.json)
+├── tests/                  # pytest
+├── logs/                   # app.log, app.json, requests.csv
+└── docs/                   # ARCHITECTURE.md, API_SPEC.md и др.
 ```
 
 ## Ключевые компоненты
 
-### RAG-Pipeline
+### RAG-Pipeline (`api/rag_pipeline.py`, класс `RAGPipeline`)
 
-- Поиск: Faiss (top-5) + Whoosh (top-3)
-- LLM: gpt-4o-mini через ProxyAPI
-- Кэширование: Redis с динамическим TTL
-- Чанки: 250-350 слов, Markdown
+- Поиск: Faiss (top-5) + Whoosh (top-3), объединение и дедупликация
+- LLM: GPT-4o-mini через ProxyAPI (`https://api.proxyapi.ru/v1`)
+- Кэширование: Redis с динамическим TTL (fallback — in-memory)
+- Чанки: Markdown, метаданные в JSON (`chunk_id`, `topic`, `subtopic`,
+  `difficulty`, `fipi_id`, `source`)
 
-### Бот
+**Два раздельных векторных хранилища** (не путать — разные пространства
+эмбеддингов, см. корневой `CLAUDE.md`):
+- `api/vector_store_existing.py` (`ExistingVectorStore`) — реально
+  используемое, флаг `USE_EXISTING_INDEX=true`, читает
+  `RAG_data_base/vector_db/` (157 чанков ФИПИ, OpenAI
+  `text-embedding-3-small`, 1536-dim).
+- `api/vector_store.py` (`VectorStore`) — локальный fallback, пустой по
+  умолчанию, HNSW, `sentence-transformers`/`rubert-tiny2`.
 
-- aiogram 3.x
-- Состояния: FSM через Redis
-- Обработчики: асинхронные
+### GUI (`gui_debugger/`)
 
-### API
+- Tkinter + ttkbootstrap
+- Два режима: пользовательский (`modes/user_mode.py`) и
+  административный (`modes/admin_mode.py`)
+- Запуск: `python -m gui_debugger.main --mode user|admin`
 
-- FastAPI
-- Эндпоинты: /, /health, /metrics
+### Backend (`main.py`)
+
+- FastAPI 0.109.0
+- Эндпоинты: `/`, `/health`, `/metrics`
+- Мобильные эндпоинты (`api/mobile_routes.py`): `GET /api/topics`,
+  `POST /api/ask`, `POST /api/tests/generate`
+
+### Мобильный клиент (`mobile/`)
+
+- Flutter/Dart, Android — автономный офлайн-режим и серверный режим
+  через тот же FastAPI-бэкенд
+- Свой `README.md` внутри `mobile/`
 
 ## Типичные задачи
 
 ### Добавить тему
 
 1. Создать файл в `data/chunks/`
-2. Переиндексировать: `rag_pipeline._reindex()`
+2. Переиндексировать через `RAGPipeline`
 
-### Добавить обработчик
+### Добавить компонент GUI
 
-1. Создать функцию в `bot/handlers.py`
-2. Зарегистрировать в роутере
-3. Добавить кнопку в `bot/keyboards.py`
+1. Создать модуль в `gui_debugger/components/` (или `components/admin/`,
+   `components/user/`)
+2. Подключить в соответствующем режиме (`modes/user_mode.py` или
+   `modes/admin_mode.py`)
 
-### Добавить API эндпоинт
+### Добавить API-эндпоинт
 
-1. Добавить в `main.py`
+1. Добавить в `main.py` (или `api/mobile_routes.py` для мобильного клиента)
 2. Документировать в `docs/API_SPEC.md`
 
 ## Тестирование
@@ -87,9 +111,12 @@ pytest tests/ --cov=. --cov-report=html
 ## Команды запуска
 
 ```bash
-# Docker
-docker-compose up -d
+# GUI (пользовательский режим)
+python -m gui_debugger.main --mode user
 
-# Локально
+# GUI (административный режим)
+python -m gui_debugger.main --mode admin
+
+# FastAPI backend
 python main.py
 ```
