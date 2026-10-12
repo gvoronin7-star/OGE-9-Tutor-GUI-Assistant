@@ -99,7 +99,6 @@ class MainMenu(ttk.Frame):
             stats_frame,
             text=self._get_stats_text(),
             font=("Segoe UI", 10),
-            foreground="#303030",
         )
         self.stats_label.pack()
 

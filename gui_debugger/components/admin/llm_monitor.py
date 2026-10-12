@@ -12,7 +12,9 @@ None) в admin_mode.py). Найдено зональным аудитом хаб
 import tkinter as tk
 from datetime import datetime
 from tkinter import messagebox, ttk
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional
+
+from gui_debugger.components.common import StatCard
 
 
 class LLMMonitor(ttk.Frame):
@@ -95,14 +97,14 @@ class LLMMonitor(ttk.Frame):
         cards_frame = ttk.Frame(stats_frame)
         cards_frame.pack(fill=tk.X)
 
-        self.requests_card = self._create_stat_card(
-            cards_frame, "Запросов сегодня", "0", 0, 0
-        )
-        self.avg_time_card = self._create_stat_card(
-            cards_frame, "Ср. время", "0с", 0, 1
-        )
-        self.errors_card = self._create_stat_card(cards_frame, "Ошибок", "0", 0, 2)
-        self.success_card = self._create_stat_card(cards_frame, "Успешно", "100%", 0, 3)
+        self.requests_card = StatCard(cards_frame, "Запросов сегодня", "0")
+        self.requests_card.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.avg_time_card = StatCard(cards_frame, "Ср. время", "0с")
+        self.avg_time_card.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        self.errors_card = StatCard(cards_frame, "Ошибок", "0")
+        self.errors_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+        self.success_card = StatCard(cards_frame, "Успешно", "100%")
+        self.success_card.grid(row=0, column=3, padx=5, pady=5, sticky="nsew")
 
         cards_frame.columnconfigure(0, weight=1)
         cards_frame.columnconfigure(1, weight=1)
@@ -142,25 +144,6 @@ class LLMMonitor(ttk.Frame):
         )
         clear_btn.pack(side=tk.RIGHT, padx=5)
 
-    def _create_stat_card(
-        self, parent: tk.Widget, title: str, value: str, row: int, col: int
-    ) -> ttk.Frame:
-        """Создание карточки статистики."""
-        card = ttk.Frame(parent, padding=10)
-        card.configure(relief="raised", borderwidth=1)
-
-        title_label = ttk.Label(
-            card, text=title, font=("Segoe UI", 9), foreground="#808080"
-        )
-        title_label.pack(anchor=tk.W)
-
-        value_label = ttk.Label(
-            card, text=value, font=("Segoe UI", 16, "bold"), foreground="#303030"
-        )
-        value_label.pack(anchor=tk.W)
-
-        return card
-
     def _refresh_status(self) -> None:
         """Обновление статуса."""
         # Демо-данные - ничего из этого не читает реальный LLM-клиент.
@@ -179,12 +162,10 @@ class LLMMonitor(ttk.Frame):
         )
 
         # Статистика
-        cast(ttk.Label, self.requests_card.winfo_children()[1]).configure(
-            text=str(used)
-        )
-        cast(ttk.Label, self.avg_time_card.winfo_children()[1]).configure(text="1.23с")
-        cast(ttk.Label, self.errors_card.winfo_children()[1]).configure(text="2")
-        cast(ttk.Label, self.success_card.winfo_children()[1]).configure(text="99.4%")
+        self.requests_card.set_value(str(used))
+        self.avg_time_card.set_value("1.23с")
+        self.errors_card.set_value("2")
+        self.success_card.set_value("99.4%")
 
         # Логи ошибок
         self.errors_text.delete(1.0, tk.END)

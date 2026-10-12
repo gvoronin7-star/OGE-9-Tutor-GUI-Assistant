@@ -7,7 +7,9 @@
 
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional
+
+from gui_debugger.components.common import StatCard
 
 
 class CacheManager(ttk.Frame):
@@ -43,10 +45,14 @@ class CacheManager(ttk.Frame):
         cards_frame = ttk.Frame(stats_frame)
         cards_frame.pack(fill=tk.X)
 
-        self.keys_card = self._create_stat_card(cards_frame, "Ключей", "0", 0, 0)
-        self.memory_card = self._create_stat_card(cards_frame, "Память", "0 MB", 0, 1)
-        self.hits_card = self._create_stat_card(cards_frame, "Hit Rate", "0%", 0, 2)
-        self.clients_card = self._create_stat_card(cards_frame, "Клиентов", "0", 0, 3)
+        self.keys_card = StatCard(cards_frame, "Ключей", "0")
+        self.keys_card.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        self.memory_card = StatCard(cards_frame, "Память", "0 MB")
+        self.memory_card.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        self.hits_card = StatCard(cards_frame, "Hit Rate", "0%")
+        self.hits_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+        self.clients_card = StatCard(cards_frame, "Клиентов", "0")
+        self.clients_card.grid(row=0, column=3, padx=5, pady=5, sticky="nsew")
 
         cards_frame.columnconfigure(0, weight=1)
         cards_frame.columnconfigure(1, weight=1)
@@ -115,35 +121,14 @@ class CacheManager(ttk.Frame):
         # Привязка выбора
         self.keys_listbox.bind("<<ListboxSelect>>", self._on_key_select)
 
-    def _create_stat_card(
-        self, parent: tk.Widget, title: str, value: str, row: int, col: int
-    ) -> ttk.Frame:
-        """Создание карточки статистики."""
-        card = ttk.Frame(parent, padding=10)
-        card.configure(relief="raised", borderwidth=1)
-
-        title_label = ttk.Label(
-            card, text=title, font=("Segoe UI", 9), foreground="#808080"
-        )
-        title_label.pack(anchor=tk.W)
-
-        value_label = ttk.Label(
-            card, text=value, font=("Segoe UI", 16, "bold"), foreground="#303030"
-        )
-        value_label.pack(anchor=tk.W)
-
-        return card
-
     def _refresh_stats(self) -> None:
         """Обновление статистики."""
         if not self.cache_manager:
             # Демо-данные
-            cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(text="150")
-            cast(ttk.Label, self.memory_card.winfo_children()[1]).configure(
-                text="2.5 MB"
-            )
-            cast(ttk.Label, self.hits_card.winfo_children()[1]).configure(text="45%")
-            cast(ttk.Label, self.clients_card.winfo_children()[1]).configure(text="3")
+            self.keys_card.set_value("150")
+            self.memory_card.set_value("2.5 MB")
+            self.hits_card.set_value("45%")
+            self.clients_card.set_value("3")
 
             # Демо-ключи
             self.keys_listbox.delete(0, tk.END)
@@ -170,27 +155,17 @@ class CacheManager(ttk.Frame):
         def on_success(result: tuple) -> None:
             stats, keys = result
 
-            cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(
-                text=str(stats.get("keys_count", 0))
-            )
-            cast(ttk.Label, self.memory_card.winfo_children()[1]).configure(
-                text=f"{stats.get('used_memory', '0')} MB"
-            )
-            cast(ttk.Label, self.hits_card.winfo_children()[1]).configure(
-                text=f"{stats.get('hit_rate', 0):.1f}%"
-            )
-            cast(ttk.Label, self.clients_card.winfo_children()[1]).configure(
-                text=str(stats.get("connected_clients", 0))
-            )
+            self.keys_card.set_value(str(stats.get("keys_count", 0)))
+            self.memory_card.set_value(f"{stats.get('used_memory', '0')} MB")
+            self.hits_card.set_value(f"{stats.get('hit_rate', 0):.1f}%")
+            self.clients_card.set_value(str(stats.get("connected_clients", 0)))
 
             self.keys_listbox.delete(0, tk.END)
             for key in keys[:100]:  # Максимум 100
                 self.keys_listbox.insert(tk.END, key)
 
         def on_error(e: BaseException) -> None:
-            cast(ttk.Label, self.keys_card.winfo_children()[1]).configure(
-                text=f"Ошибка: {str(e)}"
-            )
+            self.keys_card.set_value(f"Ошибка: {str(e)}")
 
         async_helper.run_async_in_background(self, _fetch(), on_success, on_error)
 

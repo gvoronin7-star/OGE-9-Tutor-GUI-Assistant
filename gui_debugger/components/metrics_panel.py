@@ -6,7 +6,9 @@
 import tkinter as tk
 from datetime import datetime, timedelta
 from tkinter import ttk
-from typing import Any, List, Optional, Tuple, cast
+from typing import Any, List, Optional, Tuple
+
+from gui_debugger.components.common import StatCard
 
 
 class MetricsPanel(ttk.Frame):
@@ -38,21 +40,19 @@ class MetricsPanel(ttk.Frame):
         stats_frame.pack(fill=tk.X, padx=10, pady=5)
 
         # Запросов
-        self.requests_card = self._create_stat_card(stats_frame, "Запросов", "0", 0, 0)
+        self.requests_card = StatCard(stats_frame, "Запросов", "0")
         self.requests_card.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
         # Кэш
-        self.cache_card = self._create_stat_card(stats_frame, "Кэш", "0 (0%)", 0, 1)
+        self.cache_card = StatCard(stats_frame, "Кэш", "0 (0%)")
         self.cache_card.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
 
         # Ошибок
-        self.errors_card = self._create_stat_card(stats_frame, "Ошибок", "0", 0, 2)
+        self.errors_card = StatCard(stats_frame, "Ошибок", "0")
         self.errors_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
 
         # Время ответа
-        self.time_card = self._create_stat_card(
-            stats_frame, "Время ответа", "~0с", 0, 3
-        )
+        self.time_card = StatCard(stats_frame, "Время ответа", "~0с")
         self.time_card.grid(row=0, column=3, padx=5, pady=5, sticky="nsew")
 
         stats_frame.columnconfigure(0, weight=1)
@@ -98,25 +98,6 @@ class MetricsPanel(ttk.Frame):
         )
         auto_refresh_check.pack(side=tk.RIGHT, padx=5)
 
-    def _create_stat_card(
-        self, parent: tk.Widget, title: str, value: str, row: int, col: int
-    ) -> ttk.Frame:
-        """Создание карточки статистики."""
-        card = ttk.Frame(parent, padding=10)
-        card.configure(relief="raised", borderwidth=1)
-
-        title_label = ttk.Label(
-            card, text=title, font=("Segoe UI", 9), foreground="#606060"
-        )
-        title_label.pack(anchor=tk.W)
-
-        value_label = ttk.Label(
-            card, text=value, font=("Segoe UI", 16, "bold"), foreground="#303030"
-        )
-        value_label.pack(anchor=tk.W)
-
-        return card
-
     def _refresh_metrics(self) -> None:
         """Обновление метрик."""
         if not self.rag_pipeline:
@@ -132,18 +113,10 @@ class MetricsPanel(ttk.Frame):
             errors = metrics.get("rag_errors", 0)
             avg_time = metrics.get("rag_avg_response_time", 0)
 
-            cast(ttk.Label, self.requests_card.winfo_children()[1]).configure(
-                text=str(total)
-            )
-            cast(ttk.Label, self.cache_card.winfo_children()[1]).configure(
-                text=f"{cache_hits} ({cache_rate:.1f}%)"
-            )
-            cast(ttk.Label, self.errors_card.winfo_children()[1]).configure(
-                text=str(errors)
-            )
-            cast(ttk.Label, self.time_card.winfo_children()[1]).configure(
-                text=f"~{avg_time:.2f}с"
-            )
+            self.requests_card.set_value(str(total))
+            self.cache_card.set_value(f"{cache_hits} ({cache_rate:.1f}%)")
+            self.errors_card.set_value(str(errors))
+            self.time_card.set_value(f"~{avg_time:.2f}с")
 
             # Детальная статистика
             self.detail_text.delete(1.0, tk.END)

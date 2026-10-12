@@ -53,6 +53,7 @@ class Theme:
         "code": ("Consolas", 9),
         "chat_user": ("Segoe UI", 10, "bold"),
         "chat_bot": ("Segoe UI", 10),
+        "card_value": ("Segoe UI", 16, "bold"),
     }
 
     def __init__(self, mode: str = "dark") -> None:
@@ -100,3 +101,17 @@ class Theme:
         style.configure(
             "Card.TFrame", background=style.colors.bg, relief="raised", borderwidth=1
         )
+
+        # Карточка статистики (StatCard) — раньше в каждой панели был свой
+        # "_create_stat_card()" с зашитым foreground="#303030" для значения,
+        # что на тёмной теме (умолчание приложения) давало почти нечитаемый
+        # тёмно-серый текст на тёмном фоне (найдено зональным аудитом хаба,
+        # находка В-16). Берём цвет из текущей темы вместо литерала: заголовок
+        # — приглушённый "secondary", значение — без переопределения, тогда
+        # оно наследует обычный текстовый цвет TLabel для активной темы.
+        style.configure(
+            "CardTitle.TLabel",
+            font=self.FONTS["small"],
+            foreground=style.colors.secondary,
+        )
+        style.configure("CardValue.TLabel", font=self.FONTS["card_value"])

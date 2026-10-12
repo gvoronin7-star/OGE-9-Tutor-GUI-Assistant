@@ -548,9 +548,10 @@ class RAGManager(ttk.Frame):
             )
             return
 
-        # Путь
+        # Путь. foreground="" сбрасывает возможный приглушённый цвет,
+        # оставшийся от состояния "база не найдена" выше.
         self.current_path_label.configure(
-            text=f"Путь: {current_base.absolute()}", foreground="#303030"
+            text=f"Путь: {current_base.absolute()}", foreground=""
         )
 
         # Статистика - vector_db/dataset.json, то же, что реально читает
@@ -562,9 +563,11 @@ class RAGManager(ttk.Frame):
             chunks_count = _vector_db_chunk_count(current_base)
 
             if chunks_count is None:
+                # foreground="" сбрасывает возможный красный цвет, оставшийся
+                # от предыдущего обновления, упавшего в except ниже.
                 self.current_stats_label.configure(
                     text="Статистика: vector_db/dataset.json не найден или повреждён",
-                    foreground="#303030",
+                    foreground="",
                 )
                 self.current_status_label.configure(
                     text="Статус: Пустая", foreground="#ffb900"
@@ -572,7 +575,7 @@ class RAGManager(ttk.Frame):
             else:
                 self.current_stats_label.configure(
                     text=f"Статистика: {chunks_count} чанков в vector_db/",
-                    foreground="#303030",
+                    foreground="",
                 )
                 self.current_status_label.configure(
                     text="Статус: Активна", foreground="#107c10"

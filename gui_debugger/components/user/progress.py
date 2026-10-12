@@ -10,6 +10,8 @@ from datetime import datetime
 from tkinter import messagebox, ttk
 from typing import Any, Callable, Dict, List, Optional, cast
 
+from gui_debugger.components.common import StatCard
+
 
 class ProgressPanel(ttk.Frame):
     """Панель прогресса."""
@@ -79,33 +81,21 @@ class ProgressPanel(ttk.Frame):
         self.stats_frame = ttk.Frame(self)
         self.stats_frame.pack(fill=tk.X, padx=20, pady=10)
 
-        # Карточки статистики - сохраняем ссылки на value_label
-        self.topics_card_value: Optional[ttk.Label] = None
-        self.tests_card_value: Optional[ttk.Label] = None
-        self.accuracy_card_value: Optional[ttk.Label] = None
-        self.grade_card_value: Optional[ttk.Label] = None
-
         # Карточка 1: Темы
-        topics_card = self._create_stat_card(
-            self.stats_frame, "📚 Тем изучено", "0 / 6"
-        )
-        topics_card.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        self.topics_card_value = cast(ttk.Label, topics_card.winfo_children()[1])
+        self.topics_card = StatCard(self.stats_frame, "📚 Тем изучено", "0 / 6")
+        self.topics_card.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
 
         # Карточка 2: Тесты
-        tests_card = self._create_stat_card(self.stats_frame, "✍️ Тестов пройдено", "0")
-        tests_card.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
-        self.tests_card_value = cast(ttk.Label, tests_card.winfo_children()[1])
+        self.tests_card = StatCard(self.stats_frame, "✍️ Тестов пройдено", "0")
+        self.tests_card.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
 
         # Карточка 3: Точность
-        accuracy_card = self._create_stat_card(self.stats_frame, "✅ Точность", "0%")
-        accuracy_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
-        self.accuracy_card_value = cast(ttk.Label, accuracy_card.winfo_children()[1])
+        self.accuracy_card = StatCard(self.stats_frame, "✅ Точность", "0%")
+        self.accuracy_card.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
 
         # Карточка 4: Оценка
-        grade_card = self._create_stat_card(self.stats_frame, "🏆 Оценка", "—")
-        grade_card.grid(row=0, column=3, padx=5, pady=5, sticky="nsew")
-        self.grade_card_value = cast(ttk.Label, grade_card.winfo_children()[1])
+        self.grade_card = StatCard(self.stats_frame, "🏆 Оценка", "—")
+        self.grade_card.grid(row=0, column=3, padx=5, pady=5, sticky="nsew")
 
         self.stats_frame.columnconfigure(0, weight=1)
         self.stats_frame.columnconfigure(1, weight=1)
@@ -178,51 +168,28 @@ class ProgressPanel(ttk.Frame):
         )
         refresh_btn.pack(side=tk.RIGHT, padx=5)
 
-    def _create_stat_card(self, parent: tk.Widget, title: str, value: str) -> ttk.Frame:
-        """Создание карточки статистики."""
-        card = ttk.Frame(parent, padding=15)
-        card.configure(relief="raised", borderwidth=1)
-
-        title_label = ttk.Label(
-            card, text=title, font=("Segoe UI", 9), foreground="#808080"
-        )
-        title_label.pack(anchor=tk.W)
-
-        value_label = ttk.Label(
-            card, text=value, font=("Segoe UI", 16, "bold"), foreground="#303030"
-        )
-        value_label.pack(anchor=tk.W)
-
-        return card
-
     def _update_display(self) -> None:
         """Обновление отображения."""
         progress = self.user_data.get("progress", {})
 
-        # Обновление карточек через сохранённые ссылки
-        if self.topics_card_value:
-            topics_studied = progress.get("topics_studied", 0)
-            self.topics_card_value.configure(text=f"{topics_studied} / 6")
+        topics_studied = progress.get("topics_studied", 0)
+        self.topics_card.set_value(f"{topics_studied} / 6")
 
-        if self.tests_card_value:
-            tests_completed = progress.get("tests_completed", 0)
-            self.tests_card_value.configure(text=str(tests_completed))
+        tests_completed = progress.get("tests_completed", 0)
+        self.tests_card.set_value(str(tests_completed))
 
-        if self.accuracy_card_value:
-            accuracy = progress.get("accuracy", 0)
-            self.accuracy_card_value.configure(text=f"{accuracy:.0f}%")
+        accuracy = progress.get("accuracy", 0)
+        self.accuracy_card.set_value(f"{accuracy:.0f}%")
 
-        if self.grade_card_value:
-            accuracy = progress.get("accuracy", 0)
-            if accuracy >= 80:
-                grade = "5.0"
-            elif accuracy >= 50:
-                grade = "4.0"
-            elif accuracy > 0:
-                grade = "3.0"
-            else:
-                grade = "—"
-            self.grade_card_value.configure(text=grade)
+        if accuracy >= 80:
+            grade = "5.0"
+        elif accuracy >= 50:
+            grade = "4.0"
+        elif accuracy > 0:
+            grade = "3.0"
+        else:
+            grade = "—"
+        self.grade_card.set_value(grade)
 
         # Прогресс по темам
         completed_topics = progress.get("topics_completed", [])

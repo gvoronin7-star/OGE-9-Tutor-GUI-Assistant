@@ -218,7 +218,6 @@ class TestSolver(ttk.Frame):
             question_frame,
             text="Выберите тему и нажмите «Начать тест»",
             font=("Segoe UI", 11),
-            foreground="#303030",
             wraplength=800,
             justify=tk.CENTER,
         )
@@ -256,7 +255,6 @@ class TestSolver(ttk.Frame):
             self.result_frame,
             text="",
             font=("Segoe UI", 12, "bold"),
-            foreground="#303030",
         )
         self.result_label.pack()
 
