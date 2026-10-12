@@ -26,6 +26,9 @@ from gui_debugger.modes.user_mode import UserMode
 # Импорт после добавления пути
 from gui_debugger.styles.theme import Theme
 
+ICON_DIR = Path(__file__).parent / "assets" / "icon"
+ICON_SIZES = (16, 32, 48, 64, 128, 256)
+
 
 class OGEDebuggerApp:
     """Главное приложение отладчика v2.0."""
@@ -67,6 +70,7 @@ class OGEDebuggerApp:
         self.root = tb.Window(themename=self.theme.get_style_config()["theme"])
         self.root.title("OGE TUTOR — GUI v2.0")
         self.root.geometry("1400x900")
+        self._set_window_icon()
 
         # Конфигурация сетки
         self.root.columnconfigure(0, weight=1)
@@ -88,6 +92,23 @@ class OGEDebuggerApp:
 
         # Применение кастомных стилей поверх темы ttkbootstrap
         self.theme.apply_custom_styles(self.root.style)
+
+    def _set_window_icon(self) -> None:
+        """
+        Значок окна/таскбара — сгенерирован `scripts/generate_desktop_icon.py`
+        из той же академической шапочки, что служит иконкой мобильного
+        приложения (не бренд заказчика — его ещё нет, решение владельца
+        не ждать бренда для этого шага, см. decisions/decision-log.md,
+        2026-10-12). Ссылки на PhotoImage хранятся в self._icon_images —
+        без них Tk соберёт изображения мусором и иконка пропадёт.
+        """
+        icon_paths = [ICON_DIR / f"app_icon_{size}.png" for size in ICON_SIZES]
+        existing = [p for p in icon_paths if p.exists()]
+        if not existing:
+            return
+
+        self._icon_images = [tk.PhotoImage(file=str(p)) for p in existing]
+        self.root.iconphoto(True, *self._icon_images)
 
     def _destroy_current_mode(self) -> None:
         """
