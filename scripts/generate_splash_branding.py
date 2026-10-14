@@ -67,7 +67,7 @@ def build_master() -> Image.Image:
 def main() -> None:
     master = build_master()
     for density, size in DENSITIES.items():
-        resized = master.resize((size, size), Image.LANCZOS)
+        resized = master.resize((size, size), Image.Resampling.LANCZOS)
         for prefix in (f"drawable-{density}", f"drawable-night-{density}"):
             path = RES_DIR / prefix / "splash.png"
             resized.save(path)

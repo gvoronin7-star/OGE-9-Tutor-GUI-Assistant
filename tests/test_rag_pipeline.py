@@ -66,12 +66,21 @@ class TestRAGPipeline:
         модуле), а не атрибуты уже созданного экземпляра. Найдено
         зональным аудитом хаба 2026-09-08 (В-7 отчёта).
         """
+        # Без этого тест зависел от локальной data/chunks (в .gitignore):
+        # на чистой машине initialize() создавал демо-чанки прямо в
+        # репозитории и падал на await обычного Mock.index_chunks.
+        rag_pipeline.chunks_dir = temp_dir / "chunks"
+        rag_pipeline.metadata_dir = temp_dir / "metadata"
+        rag_pipeline.indices_dir = temp_dir / "indices"
+
         mock_vs = Mock()
         mock_vs.load = AsyncMock()
         mock_vs.initialize = AsyncMock()
+        mock_vs.index_chunks = AsyncMock()
         mock_ts = Mock()
         mock_ts.load = AsyncMock()
         mock_ts.initialize = AsyncMock()
+        mock_ts.index_chunks = AsyncMock()
         mock_llm = Mock()
         mock_llm.initialize = AsyncMock()
 
@@ -93,6 +102,9 @@ class TestRAGPipeline:
             mock_llm.initialize.assert_awaited_once()
             assert rag_pipeline.vector_store is mock_vs
             assert rag_pipeline.text_search is mock_ts
+            assert list(rag_pipeline.chunks_dir.glob("*.md"))
+            mock_vs.index_chunks.assert_awaited_once()
+            mock_ts.index_chunks.assert_awaited_once()
             assert rag_pipeline.llm_client is mock_llm
             assert rag_pipeline.cache_manager is not None
 

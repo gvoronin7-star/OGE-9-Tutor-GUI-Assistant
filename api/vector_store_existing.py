@@ -137,11 +137,13 @@ class ExistingVectorStore:
             # Нормализация через numpy (надёжнее)
             norms = np.linalg.norm(query_embedding, axis=1, keepdims=True)
             norms = np.where(norms == 0, 1, norms)
-            query_embedding = (query_embedding / norms).astype("float32")
+            # Новая переменная, а не переприсваивание: значение типа Any
+            # возвращает переменной объявленный Optional и снимает сужение.
+            normalized = (query_embedding / norms).astype("float32")
 
             # Поиск
             distances, indices = self.index.search(
-                query_embedding.astype("float32"), min(top_k, self.index.ntotal)
+                normalized, min(top_k, self.index.ntotal)
             )
 
             # Формирование результатов
