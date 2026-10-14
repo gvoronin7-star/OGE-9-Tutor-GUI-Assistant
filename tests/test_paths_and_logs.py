@@ -2,12 +2,14 @@
 """Тесты путей от корня проекта, разбора журнала и очистки логов (В-14)."""
 
 import csv
+import re
 from pathlib import Path
 
 from utils.advanced_logger import DetailedRequestLogger
 from utils.log_rows import (
     ALL_COMPONENTS,
     compute_stats,
+    format_time,
     load_rows,
     parse_duration,
     row_to_values,
@@ -57,7 +59,7 @@ def test_load_rows_skips_broken_and_parses(tmp_path):
     assert len(rows) == 2
     values = row_to_values(rows[0])
     assert values[1:] == ("7", "rag", "query", "12.50", "success")
-    assert len(values[0]) == 8
+    assert re.match(r"^\d{2}:\d{2}:\d{2}$", values[0])
     assert unique_components(rows) == [ALL_COMPONENTS, "llm", "rag"]
 
 
@@ -71,6 +73,14 @@ def test_row_to_values_short_row():
         "",
         "",
     )
+
+
+def test_format_time_microseconds_and_garbage():
+    """Красный, если время снова режется по символам (7.486426) или
+    неразбираемая метка превращается в пустую строку/исключение."""
+    assert format_time("2026-10-14T23:43:17.486426") == "23:43:17"
+    assert format_time("2026-10-14T23:43:17") == "23:43:17"
+    assert format_time("garbage") == "garbage"
 
 
 def test_stats_skip_bad_duration_and_count_errors():

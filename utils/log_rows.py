@@ -8,6 +8,7 @@
 
 import csv
 import math
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -47,10 +48,18 @@ def load_rows(path: Path) -> List[Dict[str, str]]:
     return rows
 
 
+def format_time(timestamp: str) -> str:
+    """Метка ISO (в т.ч. с микросекундами) -> ЧЧ:ММ:СС; неразбираемая - как есть."""
+    try:
+        return datetime.fromisoformat(timestamp.strip()).strftime("%H:%M:%S")
+    except ValueError:
+        return timestamp
+
+
 def row_to_values(row: Dict[Any, Any]) -> TableRow:
     """Строка CSV -> кортеж значений для таблицы."""
     return (
-        _field(row, "timestamp")[-8:],
+        format_time(_field(row, "timestamp")),
         _field(row, "user_id"),
         _field(row, "component"),
         _field(row, "action"),
