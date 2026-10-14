@@ -15,13 +15,7 @@ from utils.log_rows import (
     row_to_values,
     unique_components,
 )
-from utils.paths import (
-    DATA_DIR,
-    GUI_CONFIG_FILE,
-    LOGS_DIR,
-    PROJECT_ROOT,
-    RAG_DB_DIR,
-)
+from utils.paths import DATA_DIR, GUI_CONFIG_FILE, LOGS_DIR, PROJECT_ROOT, RAG_DB_DIR
 
 
 def _read(path: Path):
