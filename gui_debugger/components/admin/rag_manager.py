@@ -20,6 +20,7 @@ from tkinter import filedialog, messagebox, ttk
 from typing import Any, Callable, Optional, cast
 
 from gui_debugger.utils.gui_logger import log_action, log_error
+from utils.paths import PROJECT_ROOT, RAG_DB_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -385,9 +386,9 @@ class RAGManager(ttk.Frame):
         либо происходит целиком, либо не происходит вовсе. Найдено
         зональным аудитом хаба 2026-09-08 (К-7).
         """
-        current_base = Path("RAG_data_base")
-        backup_base = Path("RAG_data_base_backup")
-        temp_base = Path("RAG_data_base_incoming_tmp")
+        current_base = RAG_DB_DIR
+        backup_base = PROJECT_ROOT / "RAG_data_base_backup"
+        temp_base = PROJECT_ROOT / "RAG_data_base_incoming_tmp"
 
         try:
             if not self.rag_pipeline:
@@ -534,7 +535,7 @@ class RAGManager(ttk.Frame):
 
     def _update_status(self) -> None:
         """Обновление статуса текущей базы."""
-        current_base = Path("RAG_data_base")
+        current_base = RAG_DB_DIR
 
         if not current_base.exists():
             self.current_path_label.configure(

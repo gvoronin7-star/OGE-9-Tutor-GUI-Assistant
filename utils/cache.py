@@ -12,13 +12,13 @@ import asyncio
 import json
 import logging
 import os
-from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
 import redis.asyncio as redis
 
 from utils.hashing import stable_query_hash
 from utils.logger import query_stats_logger
+from utils.paths import LOGS_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class CacheManager:
         """Предварительная загрузка популярных запросов из статистики."""
         try:
             # Загрузка статистики из файла
-            stats_file = Path("logs/query_stats.json")
+            stats_file = LOGS_DIR / "query_stats.json"
             if stats_file.exists():
                 with open(stats_file, "r", encoding="utf-8") as f:
                     stats = json.load(f)

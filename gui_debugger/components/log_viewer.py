@@ -14,6 +14,9 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import Any, Dict, List, Optional, Tuple
 
+from utils.advanced_logger import detailed_logger
+from utils.paths import LOGS_DIR
+
 
 class LogViewer(ttk.Frame):
     """Просмотрщик логов."""
@@ -278,12 +281,13 @@ class LogViewer(ttk.Frame):
 
     def _clear_logs(self) -> None:
         """Очистка логов."""
-        if messagebox.askyesno("Очистка", "Вы уверены? Это удалит все логи."):
+        if messagebox.askyesno(
+            "Очистка", "Вы уверены? Это очистит журналы запросов и ошибок."
+        ):
             try:
-                for log_file in self.log_dir.glob("*.csv"):
-                    log_file.unlink()
-                for log_file in self.log_dir.glob("*.log"):
-                    log_file.unlink()
+                # Файлы не удаляются: часть из них открыта обработчиками
+                # LogManager (*.log, *.json) - их эта кнопка не трогает.
+                detailed_logger.clear()
 
                 self._load_logs()
                 messagebox.showinfo("Очистка", "Логи очищены")
@@ -356,7 +360,7 @@ if __name__ == "__main__":
     root.title("Log Viewer")
     root.geometry("1200x800")
 
-    log_dir = Path("logs")
+    log_dir = LOGS_DIR
     log_viewer = LogViewer(root, log_dir)
     log_viewer.pack(fill=tk.BOTH, expand=True)
 

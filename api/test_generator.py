@@ -11,10 +11,10 @@
 import asyncio
 import json
 import logging
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from api.rag_pipeline import RAGPipeline
+from utils.paths import DATA_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ class TestGenerator:
             rag_pipeline: RAG-пайпайн
         """
         self.rag_pipeline = rag_pipeline
-        self.tests_dir = Path("data/tests")
+        self.tests_dir = DATA_DIR / "tests"
         self.tests_dir.mkdir(parents=True, exist_ok=True)
 
         # Сопоставление сложности и типов вопросов

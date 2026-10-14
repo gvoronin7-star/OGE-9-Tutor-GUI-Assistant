@@ -7,9 +7,10 @@
 
 import json
 import tkinter as tk
-from pathlib import Path
 from tkinter import messagebox, ttk
 from typing import Any, Dict
+
+from utils.paths import GUI_CONFIG_FILE
 
 
 class ConfigPanel(ttk.Frame):
@@ -24,7 +25,7 @@ class ConfigPanel(ttk.Frame):
         """
         super().__init__(parent)
 
-        self.config_file = Path("gui_debugger/config.json")
+        self.config_file = GUI_CONFIG_FILE
         self.current_config: Dict[str, Any] = {}
 
         self._create_widgets()

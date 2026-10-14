@@ -17,6 +17,8 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from utils.paths import RAG_DB_DIR
+
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +35,7 @@ class ExistingVectorStore:
         embedding_dim: Размерность эмбеддингов (1536)
     """
 
-    def __init__(self, base_dir: Path = Path("RAG_data_base/vector_db")) -> None:
+    def __init__(self, base_dir: Path = RAG_DB_DIR / "vector_db") -> None:
         """
         Инициализация хранилища.
 

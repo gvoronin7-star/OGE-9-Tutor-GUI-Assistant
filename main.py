@@ -13,7 +13,6 @@ import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Any, AsyncGenerator
 
 from dotenv import load_dotenv
@@ -25,9 +24,10 @@ from api.rag_pipeline import RAGPipeline
 from api.test_generator import TestGenerator
 from utils.cache import CacheManager
 from utils.logger import setup_logging
+from utils.paths import ENV_FILE
 
 # Загрузка переменных окружения из .env
-env_path = Path(".env")
+env_path = ENV_FILE
 if env_path.exists():
     load_dotenv(env_path)
     print("[OK] Переменные окружения загружены из .env")
