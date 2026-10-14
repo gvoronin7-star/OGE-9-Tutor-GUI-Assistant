@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 from pythonjsonlogger import jsonlogger
 
 from utils.hashing import stable_query_hash
+from utils.paths import LOGS_DIR
 
 
 class RequestLogger:
@@ -268,7 +269,7 @@ def setup_logging(log_level: str = "INFO") -> None:
         log_level: Уровень логирования
     """
     # Создание директории для логов
-    log_dir = Path("logs")
+    log_dir = LOGS_DIR
     log_dir.mkdir(parents=True, exist_ok=True)
 
     # Формат логов
@@ -329,5 +330,5 @@ def get_logger(name: str) -> logging.Logger:
 
 
 # Глобальный экземпляр логгера запросов
-request_logger = RequestLogger(Path("logs"))
-query_stats_logger = QueryStatsLogger(Path("logs"))
+request_logger = RequestLogger(LOGS_DIR)
+query_stats_logger = QueryStatsLogger(LOGS_DIR)

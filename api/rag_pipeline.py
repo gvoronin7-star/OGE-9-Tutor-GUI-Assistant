@@ -17,7 +17,6 @@ import json
 import logging
 import os
 import time
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -29,6 +28,7 @@ from api.vector_store_existing import ExistingVectorStore
 from utils.advanced_logger import detailed_logger, logger_rag
 from utils.cache import CacheManager
 from utils.hashing import stable_query_hash
+from utils.paths import DATA_DIR, RAG_DB_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class RAGPipeline:
         }
 
         # Директории
-        self.data_dir = Path("data")
+        self.data_dir = DATA_DIR
         self.chunks_dir = self.data_dir / "chunks"
         self.metadata_dir = self.data_dir / "metadata"
         self.indices_dir = self.data_dir / "indices"
@@ -113,9 +113,7 @@ class RAGPipeline:
         if use_existing_index:
             logger.info("Попытка загрузки RAG_data_base...")
             try:
-                self.existing_store = ExistingVectorStore(
-                    Path("RAG_data_base/vector_db")
-                )
+                self.existing_store = ExistingVectorStore(RAG_DB_DIR / "vector_db")
                 loaded = await self.existing_store.load()
 
                 if loaded:
