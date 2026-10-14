@@ -71,3 +71,6 @@ htmlcov/
 .env
 *.pem
 *.key
+
+# Конфиг панели администратора (пишется при работе)
+gui_debugger/config.json

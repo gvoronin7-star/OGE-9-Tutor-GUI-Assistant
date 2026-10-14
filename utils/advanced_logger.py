@@ -25,7 +25,9 @@ import traceback
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+from utils.paths import LOGS_DIR
 
 # ============================================================================
 # ЦВЕТНОЙ ФОРМАТТЕР ДЛЯ КОНСОЛИ
@@ -134,7 +136,7 @@ class LogManager:
             return
 
         self._initialized = True
-        self.log_dir = Path("logs")
+        self.log_dir = LOGS_DIR
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
         self.loggers: Dict[str, logging.Logger] = {}
@@ -270,6 +272,27 @@ class DetailedRequestLogger:
     - Ошибки
     """
 
+    REQUESTS_HEADER: Tuple[str, ...] = (
+        "timestamp",
+        "request_id",
+        "user_id",
+        "component",
+        "action",
+        "input_data",
+        "output_data",
+        "duration_ms",
+        "status",
+        "error_message",
+    )
+    ERRORS_HEADER: Tuple[str, ...] = (
+        "timestamp",
+        "request_id",
+        "component",
+        "error_type",
+        "error_message",
+        "stack_trace",
+    )
+
     def __init__(self, log_dir: Path) -> None:
         """Инициализация."""
         self.log_dir = log_dir
@@ -280,41 +303,30 @@ class DetailedRequestLogger:
 
         self._init_files()
 
+    @staticmethod
+    def _write_header(path: Path, header: Tuple[str, ...]) -> None:
+        """Записать в файл (с перезаписью) одну строку заголовка."""
+        with open(path, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerow(header)
+
     def _init_files(self) -> None:
         """Инициализация файлов."""
-        # Requests CSV
         if not self.requests_file.exists():
-            with open(self.requests_file, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow(
-                    [
-                        "timestamp",
-                        "request_id",
-                        "user_id",
-                        "component",
-                        "action",
-                        "input_data",
-                        "output_data",
-                        "duration_ms",
-                        "status",
-                        "error_message",
-                    ]
-                )
-
-        # Errors CSV
+            self._write_header(self.requests_file, self.REQUESTS_HEADER)
         if not self.errors_file.exists():
-            with open(self.errors_file, "w", newline="", encoding="utf-8") as f:
-                writer = csv.writer(f)
-                writer.writerow(
-                    [
-                        "timestamp",
-                        "request_id",
-                        "component",
-                        "error_type",
-                        "error_message",
-                        "stack_trace",
-                    ]
-                )
+            self._write_header(self.errors_file, self.ERRORS_HEADER)
+
+    def clear(self) -> None:
+        """
+        Очистить журналы запросов и ошибок, не удаляя файлы.
+
+        Файлы перезаписываются одной строкой заголовка: логгер открывает их
+        заново на каждую запись, но другие процессы и просмотрщики могут
+        держать их открытыми, поэтому unlink() здесь не используется.
+        Ошибка записи не глотается - уходит вызывающему.
+        """
+        self._write_header(self.requests_file, self.REQUESTS_HEADER)
+        self._write_header(self.errors_file, self.ERRORS_HEADER)
 
     def log_request(
         self,
@@ -480,7 +492,7 @@ class DetailedRequestLogger:
 log_manager = LogManager()
 
 # Детальный логгер запросов
-detailed_logger = DetailedRequestLogger(Path("logs"))
+detailed_logger = DetailedRequestLogger(LOGS_DIR)
 
 # Логгеры для компонентов
 logger_rag = log_manager.get_logger("rag")

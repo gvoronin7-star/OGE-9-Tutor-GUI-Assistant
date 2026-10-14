@@ -2,15 +2,23 @@
 """
 Просмотр логов запросов.
 
-Анализ logs/requests.csv
+Анализ logs/requests_detailed.csv (пишет DetailedRequestLogger).
 """
 
 import csv
 import tkinter as tk
 from datetime import datetime
-from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+
+from utils.advanced_logger import detailed_logger
+from utils.log_rows import (
+    ALL_COMPONENTS,
+    compute_stats,
+    load_rows,
+    row_to_values,
+    unique_components,
+)
 
 
 class LogsViewer(ttk.Frame):
@@ -25,7 +33,7 @@ class LogsViewer(ttk.Frame):
         """
         super().__init__(parent)
 
-        self.logs_file = Path("logs/requests.csv")
+        self.logs_file = detailed_logger.requests_file
         self.logs_data: List[Dict[str, Any]] = []
 
         self._create_widgets()
@@ -56,26 +64,20 @@ class LogsViewer(ttk.Frame):
         user_entry = ttk.Entry(filters_frame, textvariable=self.user_var, width=15)
         user_entry.grid(row=0, column=3, padx=5, pady=5)
 
-        # Тема
-        ttk.Label(filters_frame, text="Тема:").grid(row=0, column=4, padx=5, pady=5)
-        self.topic_var = tk.StringVar()
-        topic_combo = ttk.Combobox(
+        # Компонент
+        ttk.Label(filters_frame, text="Компонент:").grid(
+            row=0, column=4, padx=5, pady=5
+        )
+        self.component_var = tk.StringVar()
+        self.component_combo = ttk.Combobox(
             filters_frame,
-            textvariable=self.topic_var,
-            values=[
-                "Все",
-                "Человек и общество",
-                "Экономика",
-                "Право",
-                "Политика",
-                "Социальная сфера",
-                "Духовная культура",
-            ],
+            textvariable=self.component_var,
+            values=[ALL_COMPONENTS],
             state="readonly",
             width=20,
         )
-        topic_combo.grid(row=0, column=5, padx=5, pady=5)
-        topic_combo.set("Все")
+        self.component_combo.grid(row=0, column=5, padx=5, pady=5)
+        self.component_combo.set(ALL_COMPONENTS)
 
         # Кнопки
         apply_btn = ttk.Button(
@@ -91,7 +93,7 @@ class LogsViewer(ttk.Frame):
         table_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         # Создание таблицы
-        columns = ("time", "user", "query", "topic", "time_ms", "cached")
+        columns = ("time", "user", "component", "action", "time_ms", "status")
         self.tree = ttk.Treeview(
             table_frame, columns=columns, show="headings", height=15
         )
@@ -99,17 +101,17 @@ class LogsViewer(ttk.Frame):
         # Настройка колонок
         self.tree.heading("time", text="Время")
         self.tree.heading("user", text="User ID")
-        self.tree.heading("query", text="Запрос")
-        self.tree.heading("topic", text="Тема")
+        self.tree.heading("component", text="Компонент")
+        self.tree.heading("action", text="Действие")
         self.tree.heading("time_ms", text="Время (мс)")
-        self.tree.heading("cached", text="Кэш")
+        self.tree.heading("status", text="Статус")
 
         self.tree.column("time", width=120)
         self.tree.column("user", width=80)
-        self.tree.column("query", width=300)
-        self.tree.column("topic", width=150)
+        self.tree.column("component", width=150)
+        self.tree.column("action", width=200)
         self.tree.column("time_ms", width=80)
-        self.tree.column("cached", width=60)
+        self.tree.column("status", width=80)
 
         # Scrollbars
         v_scroll = ttk.Scrollbar(
@@ -140,8 +142,10 @@ class LogsViewer(ttk.Frame):
         )
         self.avg_time_label.pack(side=tk.LEFT, padx=10)
 
-        self.cache_label = ttk.Label(stats_frame, text="Кэш: 0%", foreground="#808080")
-        self.cache_label.pack(side=tk.LEFT, padx=10)
+        self.errors_label = ttk.Label(
+            stats_frame, text="Ошибки: 0%", foreground="#808080"
+        )
+        self.errors_label.pack(side=tk.LEFT, padx=10)
 
         # Кнопки управления
         btn_frame = ttk.Frame(self)
@@ -168,78 +172,58 @@ class LogsViewer(ttk.Frame):
         )
         clear_btn.pack(side=tk.RIGHT, padx=5)
 
-    def _load_logs(self) -> None:
-        """Загрузка логов."""
-        # Очистка таблицы
+    def _clear_table(self) -> None:
+        """Удалить все строки таблицы."""
         for item in self.tree.get_children():
             self.tree.delete(item)
 
+    def _load_logs(self) -> None:
+        """Загрузка логов."""
+        self._clear_table()
         self.logs_data = []
 
-        if not self.logs_file.exists():
-            self.total_label.configure(text="Всего: 0 (файл не найден)")
+        try:
+            self.logs_data = load_rows(self.logs_file)
+        except Exception as e:
+            self.component_combo.configure(values=[ALL_COMPONENTS])
+            self._update_stats()
+            self.total_label.configure(text=f"Ошибка чтения логов: {str(e)}")
             return
 
-        try:
-            with open(self.logs_file, "r", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    self.logs_data.append(row)
-                    self.tree.insert(
-                        "",
-                        tk.END,
-                        values=[
-                            row.get("timestamp", "")[-8:],  # Только время
-                            row.get("user_id", ""),
-                            row.get("query_text", "")[:50],
-                            row.get("topic", ""),
-                            row.get("total_response_time", ""),
-                            "✅" if row.get("is_cached") == "1" else "❌",
-                        ],
-                    )
+        self.component_combo.configure(values=unique_components(self.logs_data))
+        if self.component_var.get() not in self.component_combo.cget("values"):
+            self.component_combo.set(ALL_COMPONENTS)
 
-            self._update_stats()
+        for row in self.logs_data:
+            self.tree.insert("", tk.END, values=row_to_values(row))
 
-        except Exception as e:
-            self.total_label.configure(text=f"Ошибка: {str(e)}")
+        self._update_stats()
+        if not self.logs_file.exists():
+            self.total_label.configure(text="Всего: 0 (файл не найден)")
 
     def _apply_filters(self) -> None:
         """Применение фильтров."""
-        # Очистка
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+        self._clear_table()
 
         date_filter = self.date_var.get()
         user_filter = self.user_var.get()
-        topic_filter = self.topic_var.get()
+        component_filter = self.component_var.get()
 
         filtered = []
         for row in self.logs_data:
-            # Фильтр по дате
             if date_filter and date_filter not in row.get("timestamp", ""):
                 continue
-
-            # Фильтр по пользователю
             if user_filter and user_filter not in row.get("user_id", ""):
                 continue
-
-            # Фильтр по теме
-            if topic_filter != "Все" and topic_filter not in row.get("topic", ""):
+            if (
+                component_filter
+                and component_filter != ALL_COMPONENTS
+                and component_filter != row.get("component", "")
+            ):
                 continue
 
             filtered.append(row)
-            self.tree.insert(
-                "",
-                tk.END,
-                values=[
-                    row.get("timestamp", "")[-8:],
-                    row.get("user_id", ""),
-                    row.get("query_text", "")[:50],
-                    row.get("topic", ""),
-                    row.get("total_response_time", ""),
-                    "✅" if row.get("is_cached") == "1" else "❌",
-                ],
-            )
+            self.tree.insert("", tk.END, values=row_to_values(row))
 
         self.total_label.configure(
             text=f"Всего: {len(filtered)} (из {len(self.logs_data)})"
@@ -249,40 +233,18 @@ class LogsViewer(ttk.Frame):
         """Сброс фильтров."""
         self.date_var.set(datetime.now().strftime("%Y-%m-%d"))
         self.user_var.set("")
-        self.topic_var.set("Все")
+        self.component_var.set(ALL_COMPONENTS)
         self._load_logs()
 
     def _update_stats(self) -> None:
         """Обновление статистики."""
-        total = len(self.logs_data)
+        total, avg_ms, error_rate, errors = compute_stats(self.logs_data)
 
-        if total == 0:
-            self.avg_time_label.configure(text="Ср. время: 0мс")
-            self.cache_label.configure(text="Кэш: 0%")
-            return
-
-        # Среднее время
-        times = []
-        cache_hits = 0
-
-        for row in self.logs_data:
-            try:
-                time_val = float(row.get("total_response_time", 0))
-                times.append(time_val)
-            except:
-                pass
-
-            if row.get("is_cached") == "1":
-                cache_hits += 1
-
-        avg_time = sum(times) / len(times) if times else 0
-        cache_rate = (cache_hits / total) * 100 if total > 0 else 0
-
-        self.avg_time_label.configure(text=f"Ср. время: {avg_time:.2f}с")
-        self.cache_label.configure(
-            text=f"Кэш: {cache_rate:.1f}% ({cache_hits}/{total})"
-        )
         self.total_label.configure(text=f"Всего: {total}")
+        self.avg_time_label.configure(text=f"Ср. время: {avg_ms:.0f}мс")
+        self.errors_label.configure(
+            text=f"Ошибки: {error_rate:.1f}% ({errors}/{total})"
+        )
 
     def _export_logs(self) -> None:
         """Экспорт логов."""
@@ -298,7 +260,9 @@ class LogsViewer(ttk.Frame):
         try:
             with open(file_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.DictWriter(
-                    f, fieldnames=self.logs_data[0].keys() if self.logs_data else []
+                    f,
+                    fieldnames=list(detailed_logger.REQUESTS_HEADER),
+                    extrasaction="ignore",
                 )
                 writer.writeheader()
                 writer.writerows(self.logs_data)
@@ -317,16 +281,8 @@ class LogsViewer(ttk.Frame):
             "Очистка логов", "Вы уверены? Это действие нельзя отменить."
         ):
             try:
-                if self.logs_file.exists():
-                    self.logs_file.unlink()
-                self.logs_data = []
-
-                for item in self.tree.get_children():
-                    self.tree.delete(item)
-
-                self.total_label.configure(text="Всего: 0")
-                self.avg_time_label.configure(text="Ср. время: 0мс")
-                self.cache_label.configure(text="Кэш: 0%")
+                detailed_logger.clear()
+                self._load_logs()
 
             except Exception as e:
                 self.total_label.configure(text=f"❌ Ошибка: {str(e)}")
