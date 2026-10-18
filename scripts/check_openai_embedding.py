@@ -29,6 +29,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Загрузка .env
 from dotenv import load_dotenv
 
+from utils.paths import RAG_DB_DIR
+
 load_dotenv()
 
 
@@ -148,7 +150,7 @@ async def test_rag_data_base_compatibility():
     import json
     from pathlib import Path
 
-    metadata_file = Path("RAG_data_base/vector_db/metadata.json")
+    metadata_file = RAG_DB_DIR / "vector_db" / "metadata.json"
 
     if not metadata_file.exists():
         print("[ERROR] metadata.json не найден!")

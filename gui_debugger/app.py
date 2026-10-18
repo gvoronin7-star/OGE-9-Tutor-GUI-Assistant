@@ -7,6 +7,7 @@
 - Административный режим (отладка и мониторинг)
 """
 
+import logging
 import sys
 import tkinter as tk
 from pathlib import Path
@@ -25,6 +26,8 @@ from gui_debugger.modes.user_mode import UserMode
 
 # Импорт после добавления пути
 from gui_debugger.styles.theme import Theme
+
+logger = logging.getLogger(__name__)
 
 ICON_DIR = Path(__file__).parent / "assets" / "icon"
 ICON_SIZES = (16, 32, 48, 64, 128, 256)
@@ -107,8 +110,13 @@ class OGEDebuggerApp:
         if not existing:
             return
 
-        self._icon_images = [tk.PhotoImage(file=str(p)) for p in existing]
-        self.root.iconphoto(True, *self._icon_images)
+        # Битый или нечитаемый PNG не должен ронять запуск окна: без
+        # значка приложение работает, поэтому ошибка только в лог.
+        try:
+            self._icon_images = [tk.PhotoImage(file=str(p)) for p in existing]
+            self.root.iconphoto(True, *self._icon_images)
+        except tk.TclError as exc:
+            logger.warning("Значок окна не загружен: %s", exc)
 
     def _destroy_current_mode(self) -> None:
         """

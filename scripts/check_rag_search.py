@@ -36,6 +36,8 @@ logger = logging.getLogger(__name__)
 # Загрузка .env
 from dotenv import load_dotenv
 
+from utils.paths import RAG_DB_DIR
+
 load_dotenv()
 
 
@@ -48,7 +50,7 @@ async def test_existing_vector_store():
 
     from api.vector_store_existing import ExistingVectorStore
 
-    store = ExistingVectorStore(Path("RAG_data_base/vector_db"))
+    store = ExistingVectorStore(RAG_DB_DIR / "vector_db")
     loaded = await store.load()
 
     if not loaded:
@@ -76,7 +78,7 @@ async def test_search_existing():
 
     from api.vector_store_existing import ExistingVectorStore
 
-    store = ExistingVectorStore(Path("RAG_data_base/vector_db"))
+    store = ExistingVectorStore(RAG_DB_DIR / "vector_db")
     await store.load()
 
     test_queries = [

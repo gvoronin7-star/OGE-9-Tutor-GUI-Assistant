@@ -18,7 +18,14 @@ import asyncio
 import json
 import logging
 import sys
+import time
 from pathlib import Path
+
+# Корень проекта в sys.path - для api/ и utils/ при запуске из любого
+# каталога; пути ниже - от корня, а не от текущего каталога (М-н6).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from utils.paths import DATA_DIR, ENV_FILE, PROJECT_ROOT, RAG_DB_DIR
 
 # Настройка логирования
 logging.basicConfig(
@@ -31,7 +38,7 @@ async def check_rag_database() -> bool:
     """Проверка наличия RAG_data_base."""
     logger.info("Проверка RAG_data_base...")
 
-    base_dir = Path("RAG_data_base")
+    base_dir = RAG_DB_DIR
     if not base_dir.exists():
         logger.error("RAG_data_base не найдена!")
         return False
@@ -54,10 +61,9 @@ async def test_load_index() -> tuple:
     logger.info("Тест загрузки индекса...")
 
     try:
-        sys.path.insert(0, str(Path(__file__).parent.parent))
         from api.vector_store_existing import ExistingVectorStore
 
-        store = ExistingVectorStore(Path("RAG_data_base/vector_db"))
+        store = ExistingVectorStore(RAG_DB_DIR / "vector_db")
         loaded = await store.load()
 
         if not loaded:
@@ -123,15 +129,15 @@ def create_backup() -> Path:
     """Создание резервной копии текущих данных."""
     logger.info("Создание резервной копии...")
 
-    backup_dir = Path("data/backup")
+    backup_dir = DATA_DIR / "backup"
     backup_dir.mkdir(parents=True, exist_ok=True)
 
     # Копирование текущих чанков
-    chunks_dir = Path("data/chunks")
+    chunks_dir = DATA_DIR / "chunks"
     if chunks_dir.exists():
         import shutil
 
-        timestamp = Path().stat().st_mtime
+        timestamp = time.time()
         backup_name = f"chunks_backup_{int(timestamp)}"
         shutil.copytree(chunks_dir, backup_dir / backup_name)
         logger.info(f"✓ Резервная копия: {backup_dir / backup_name}")
@@ -143,7 +149,7 @@ def update_env_config():
     """Обновление .env конфигурации."""
     logger.info("Обновление .env...")
 
-    env_file = Path(".env")
+    env_file = ENV_FILE
 
     if not env_file.exists():
         logger.warning(".env не найден, создаю новый")
@@ -172,7 +178,7 @@ def update_env_config():
 
 def create_integration_guide():
     """Создание краткого руководства."""
-    guide_path = Path("RAG_INTEGRATION_GUIDE.md")
+    guide_path = PROJECT_ROOT / "RAG_INTEGRATION_GUIDE.md"
 
     guide = """# КРАТКОЕ РУКОВОДСТВО ПО ИНТЕГРАЦИИ RAG_data_base
 

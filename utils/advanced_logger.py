@@ -248,13 +248,6 @@ class LogManager:
         """
         return self.log_dir / f"{name}.log"
 
-    def clear_logs(self) -> None:
-        """Очистка всех логов."""
-        for log_file in self.log_dir.glob("*.log"):
-            log_file.unlink()
-        for json_file in self.log_dir.glob("*.json"):
-            json_file.unlink()
-
 
 # ============================================================================
 # ЛОГГЕР ЗАПРОСОВ С ДЕТАЛИЗАЦИЕЙ
