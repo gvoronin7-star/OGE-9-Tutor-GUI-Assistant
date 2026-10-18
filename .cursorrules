@@ -33,14 +33,15 @@ project_root/
 │   ├── test_generator.py   # Генератор тестов
 │   └── mobile_routes.py    # REST-эндпоинты для мобильного клиента
 ├── mobile/                 # Мобильный клиент (Flutter/Dart, Android) — свой README.md
-├── utils/                  # logger.py, advanced_logger.py, cache.py, hashing.py
+├── utils/                  # logger.py, advanced_logger.py, cache.py, hashing.py,
+│                           # paths.py (пути от корня проекта), log_rows.py
 ├── scripts/                # integrate_rag_database.py, export_mobile_*,
 │                           # generate_*_icon.py, check_secrets.py и др.
 ├── data/                   # chunks/, metadata/, indices/, tests/
 ├── RAG_data_base/          # vector_db/ — реальная база ФИПИ (157 чанков,
 │                           # dataset.json + index.faiss + metadata.json)
 ├── tests/                  # pytest
-├── logs/                   # app.log, app.json, requests.csv
+├── logs/                   # app.log, app.json, requests_detailed.csv, errors.csv
 └── docs/                   # ARCHITECTURE.md, API_SPEC.md и др.
 ```
 
