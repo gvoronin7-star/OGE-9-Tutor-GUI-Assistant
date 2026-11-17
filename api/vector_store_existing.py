@@ -15,7 +15,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
 
 from utils.paths import RAG_DB_DIR
 
@@ -27,6 +26,10 @@ class ExistingVectorStore:
     Векторное хранилище для готовой базы RAG_data_base.
 
     Использует предсозданный Faiss-индекс с размерностью 1536.
+    Эмбеддинг запроса берётся только через OpenAI-совместимый API
+    (text-embedding-3-small): локальной модели с такой же размерностью нет,
+    поэтому без ключа API или при ошибке API поиск возвращает пустой список
+    (с записью в лог).
 
     Attributes:
         base_dir: Директория базы данных
@@ -47,9 +50,6 @@ class ExistingVectorStore:
         self.index: Optional[Any] = None
         self.metadata: Dict[str, Any] = {}
         self.embedding_dim = 1536  # text-embedding-3-small
-
-        # Для локальных эмбеддингов (fallback)
-        self.model: Optional[SentenceTransformer] = None
 
         self._lock = asyncio.Lock()
 
@@ -104,16 +104,17 @@ class ExistingVectorStore:
             logger.error(f"Ошибка загрузки индекса: {e}")
             return False
 
-    async def search(
-        self, query: str, top_k: int = 5, use_remote_embedding: bool = False
-    ) -> List[Dict[str, Any]]:
+    async def search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
         """
         Поиск релевантных чанков.
+
+        Эмбеддинг запроса всегда строится через API (OPENAI_API_KEY или
+        PROXY_API_KEY), той же моделью, что и индекс. Нет ключа, ошибка API
+        или сбой Faiss — возвращается [] и пишется строка в лог.
 
         Args:
             query: Поисковый запрос
             top_k: Количество результатов
-            use_remote_embedding: Использовать ли OpenAI API для эмбеддингов
 
         Returns:
             List[Dict[str, Any]]: Список релевантных чанков
@@ -126,12 +127,7 @@ class ExistingVectorStore:
 
         try:
             # Генерация эмбеддинга запроса
-            if use_remote_embedding:
-                # Требуется OpenAI API
-                query_embedding = await self._get_openai_embedding(query)
-            else:
-                # Локальная модель (fallback, менее точно)
-                query_embedding = await self._get_local_embedding(query)
+            query_embedding = await self._get_openai_embedding(query)
 
             if query_embedding is None:
                 return []
@@ -236,31 +232,6 @@ class ExistingVectorStore:
 
         except Exception as e:
             logger.error(f"Ошибка получения эмбеддинга: {e}")
-            return None
-
-    async def _get_local_embedding(self, text: str) -> Optional[np.ndarray]:
-        """
-        Получение эмбеддинга через локальную модель.
-
-        Args:
-            text: Текст для эмбеддинга
-
-        Returns:
-            np.ndarray: Вектор эмбеддинга или None
-        """
-        try:
-            if not self.model:
-                self.model = SentenceTransformer("cointegrated/rubert-tiny2")
-
-            embedding = self.model.encode([text], show_progress_bar=False)
-
-            # Размерность не совпадает (312 vs 1536), но можно использовать для аппроксимации
-            # Это не идеально, но работает как fallback
-
-            return embedding
-
-        except Exception as e:
-            logger.error(f"Ошибка локального эмбеддинга: {e}")
             return None
 
     def _extract_topic(self, chunk: Dict[str, Any]) -> str:

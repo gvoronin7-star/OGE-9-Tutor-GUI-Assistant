@@ -492,9 +492,7 @@ class RAGPipeline:
         if self.use_existing and self.existing_store:
             try:
                 search_start = time.time()
-                existing_results = await self.existing_store.search(
-                    query, top_k=top_k, use_remote_embedding=True  # ProxyAPI
-                )
+                existing_results = await self.existing_store.search(query, top_k=top_k)
                 search_duration = (time.time() - search_start) * 1000
                 results.extend(existing_results)
                 logger_rag.info(
