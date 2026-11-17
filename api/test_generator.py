@@ -114,7 +114,10 @@ class TestGenerator:
             difficulty, self.difficulty_params["medium"]
         )
 
-        # Генерация вопросов через LLM или демо-режим
+        # Генерация вопросов через LLM или демо-режим.
+        # Демо-режим здесь всё-или-ничего: либо все вопросы от LLM,
+        # либо все из демо-банка.
+        used_demo = False
         try:
             questions = await self.rag_pipeline.llm_client.generate_questions(  # type: ignore[union-attr]
                 topic=topic,
@@ -129,6 +132,7 @@ class TestGenerator:
         except Exception as e:
             logger.warning(f"LLM генерация недоступна: {e}. Использую демо-вопросы.")
             questions = self._generate_demo_questions(topic, difficulty, num_questions)
+            used_demo = True
 
         # Сохранение теста
         test_id = f"test_{topic}_{difficulty}"
@@ -140,6 +144,9 @@ class TestGenerator:
             "complexity": params["complexity"],
             "questions": questions,
             "total_questions": len(questions),
+            # Признак деградации: вопросы взяты из демо-банка, а не от LLM
+            "is_demo": used_demo,
+            "demo_questions": len(questions) if used_demo else 0,
             "created_at": "2026-03-05",
         }
 
@@ -1454,7 +1461,9 @@ class TestGenerator:
             "социальная сфера",
             "сфера духовной культуры",
         ]
-        all_questions = []
+        # Элементы: (вопрос, тема, из_демо_банка). Пометка источника живёт
+        # только в кортеже и в JSON вопроса не попадает.
+        all_questions: List[tuple] = []
 
         for topic in topics:
             try:
@@ -1471,14 +1480,19 @@ class TestGenerator:
                     # Добавляем метку темы
                     for q_key, q_data in questions.items():
                         q_data["topic"] = topic
-                        all_questions.append((q_data, topic))
+                        all_questions.append((q_data, topic, False))
 
             except Exception as e:
                 logger.warning(f"Ошибка генерации вопросов по теме {topic}: {e}")
 
         # Если не хватило вопросов через LLM, используем демо-вопросы
         if len(all_questions) < num_questions:
-            all_questions.extend(self._get_demo_questions_by_topic())
+            demo_pool = [(q, t, True) for q, t in self._get_demo_questions_by_topic()]
+            logger.warning(
+                f"LLM дала {len(all_questions)} из {num_questions} вопросов; "
+                f"добавляю демо-вопросы из демо-банка ({len(demo_pool)} в пуле)."
+            )
+            all_questions.extend(demo_pool)
 
         # Перемешивание вопросов
         import random
@@ -1490,8 +1504,10 @@ class TestGenerator:
 
         # Форматирование в словарь
         questions_dict = {}
-        for i, (q_data, topic) in enumerate(all_questions):
+        for i, (q_data, topic, _from_demo) in enumerate(all_questions):
             questions_dict[f"q_{i}"] = q_data
+
+        demo_count = sum(1 for _q, _t, from_demo in all_questions if from_demo)
 
         # Сохранение теста
         test_id = f"test_all_topics_{len(all_questions)}"
@@ -1503,6 +1519,9 @@ class TestGenerator:
             "complexity": "смешанный",
             "questions": questions_dict,
             "total_questions": len(all_questions),
+            # Считается по вопросам, реально попавшим в тест (после обрезки)
+            "is_demo": demo_count > 0,
+            "demo_questions": demo_count,
             "created_at": "2026-03-05",
         }
 
