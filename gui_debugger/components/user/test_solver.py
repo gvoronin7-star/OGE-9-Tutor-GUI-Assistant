@@ -18,6 +18,7 @@ from tkinter import messagebox, scrolledtext, ttk
 from typing import Any, Callable, Dict, List, Optional, cast
 
 from gui_debugger.utils.gui_logger import gui_action_logger, log_action, log_error
+from utils.test_status import loaded_status_text
 
 
 class TestSolver(ttk.Frame):
@@ -714,6 +715,9 @@ class TestSolver(ttk.Frame):
             "difficulty": "medium",
             "questions": {f"q_{i}": q for i, q in enumerate(questions_list)},
             "total_questions": len(questions_list),
+            # Встроенный демо-банк: все вопросы демонстрационные
+            "is_demo": True,
+            "demo_questions": len(questions_list),
         }
 
         # Без этого правильный ответ у демо-теста по теме всегда стоит на
@@ -892,6 +896,7 @@ class TestSolver(ttk.Frame):
                 },
             },
             "total_questions": 10,
+            "is_demo": True,
         }
 
         # Обрезаем до выбранного количества вопросов
@@ -900,6 +905,9 @@ class TestSolver(ttk.Frame):
             questions = dict(list(demo_test["questions"].items())[:num_questions])
             demo_test["questions"] = questions
             demo_test["total_questions"] = num_questions
+
+        # Все вопросы этого теста — демо; считаем по факту после обрезки
+        demo_test["demo_questions"] = len(demo_test["questions"])
 
         # Перемешиваем ответы для каждого вопроса
         for q_key in demo_test["questions"]:
@@ -924,9 +932,7 @@ class TestSolver(ttk.Frame):
         # Скрытие результата и индикатора
         self.result_frame.pack_forget()
         self.loading_label.configure(text="")
-        self.status_label.configure(
-            text=f"✅ Тест загружен: {test['total_questions']} вопросов"
-        )
+        self.status_label.configure(text=loaded_status_text(test))
 
         # Запуск таймера
         self._start_timer()

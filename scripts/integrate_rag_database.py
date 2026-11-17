@@ -99,7 +99,7 @@ async def test_search(store) -> bool:
         logger.info(f"\nЗапрос: {query}")
 
         try:
-            results = await store.search(query, top_k=2, use_remote_embedding=False)
+            results = await store.search(query, top_k=2)
 
             if results:
                 logger.info(f"  Найдено: {len(results)} результатов")
@@ -107,16 +107,12 @@ async def test_search(store) -> bool:
                     logger.info(f"  {i}. Score: {r['score']:.3f}")
                     logger.info(f"     Text: {r['text'][:80]}...")
             else:
-                # use_remote_embedding=False использует локальную модель
-                # (312-мерный эмбеддинг) против индекса, построенного на
-                # 1536-мерных эмбеддингах OpenAI — несовпадение размерности
-                # ловится и логируется внутри store.search() ("Ошибка
-                # поиска: ..." строкой выше); настоящая причина именно там,
-                # OpenAI API тут ни при чём
+                # Эмбеддинг запроса всегда строится через API. Пустой результат
+                # — вероятно, нет OPENAI_API_KEY / PROXY_API_KEY или API
+                # вернул ошибку; причина записана в строке лога выше.
                 logger.warning(
-                    "  Ничего не найдено — см. строку выше с реальной ошибкой "
-                    "(вероятно, несовпадение размерности эмбеддинга: локальная "
-                    "модель 312-мерная, индекс построен на 1536-мерных OpenAI)"
+                    "  Ничего не найдено — см. строку лога выше: вероятная "
+                    "причина — нет OPENAI_API_KEY / PROXY_API_KEY или ошибка API"
                 )
 
         except Exception as e:

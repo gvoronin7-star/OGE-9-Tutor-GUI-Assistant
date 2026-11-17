@@ -93,9 +93,7 @@ async def test_search_existing():
         print(f"[Запрос {i}/3] {query}")
 
         try:
-            results = await store.search(
-                query, top_k=3, use_remote_embedding=True  # ProxyAPI
-            )
+            results = await store.search(query, top_k=3)
 
             if results:
                 print(f"  [OK] Найдено {len(results)} результатов")
